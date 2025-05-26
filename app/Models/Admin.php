@@ -1,0 +1,28 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Admin extends Model
+{
+    //
+    protected $table = 'admins';
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'user_id',
+        'name',
+        'nic',
+        'phone',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+}
