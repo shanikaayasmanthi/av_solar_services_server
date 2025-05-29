@@ -21,8 +21,6 @@ class OnGrid extends Model
         'wifi_username',
         'wifi_password',
         'harmonic_meter',
-        'logitude',
-        'lattitude',
         'remarks'
      ];
 

@@ -16,7 +16,6 @@ class Customer extends Model
         'user_id',
         'name',
         'nic',
-        'phone',
         'address'
     ];
 
@@ -28,5 +27,9 @@ class Customer extends Model
     public function project()
     {
         return $this->hasMany(Project::class);
+    }
+
+    public function customerPhoneNo(){
+        return $this->hasMany(CustomerPhoneNo::class);
     }
 }

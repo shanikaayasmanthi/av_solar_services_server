@@ -18,8 +18,6 @@ return new class extends Migration
             $table->string('wifi_username')->nullable();
             $table->string('wifi_passowrd')->nullable();
             $table->string('connection_type');
-            $table->string('longitude')->nullable();
-            $table->string('lattitude')->nullable();
             $table->string('remarks')->nullable();
             $table->timestamps();
         });

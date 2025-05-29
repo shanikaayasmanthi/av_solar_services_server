@@ -17,14 +17,18 @@ class Project extends Model
      protected $fillable = [
         'customer_id',
         'type',
+        'project_name',
         'nearest_town',
-        // 'project_no',
+        'project_address',
         'no_of_panels',
         'panel_capacity',
         'service_years_in_agreement',
         'service_rounds_in_agreement',
         'system_on',
         'project_installation_date',
+        'longitude',
+        'lattitude',
+        'location',
         'remarks',
         
      ];

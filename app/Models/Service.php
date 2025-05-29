@@ -59,6 +59,10 @@ class Service extends Model
      {
       return $this->hasOne(AC::class);
      }
+
+     public function serviceTechniciant(){
+      return $this->hasMany(ServiceTechniciant::class);
+     }
 }
 
 

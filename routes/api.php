@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ServiceController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -16,3 +17,7 @@ Route::post('/register', [AuthController::class,'register']);
 
 //protecterd routes
 Route::post('/logout',[AuthController::class,'logout'])->middleware('auth:sanctum');
+
+//mobile apis
+//get services assigned for supervisor
+Route::post('/sup/services',[ServiceController::class,'getSupervisorAllServices'])->middleware('auth:sanctum');
