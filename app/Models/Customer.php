@@ -30,6 +30,6 @@ class Customer extends Model
     }
 
     public function customerPhoneNo(){
-        return $this->hasMany(CustomerPhoneNo::class);
+        return $this->hasMany(CustomerPhoneNo::class, 'customer_id', 'user_id');
     }
 }

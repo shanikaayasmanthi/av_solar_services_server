@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('customer_phone_nos', function (Blueprint $table) {
             $table->id();
-            $table->foreign('user_id')->references('user_id')->on('customers')->onDelete('cascade');
+            $table->unsignedBigInteger('customer_id');
+            $table->foreign('customer_id')->references('user_id')->on('customers')->onDelete('restrict');
             $table->string('phone_no');
             $table->timestamps();
         });
