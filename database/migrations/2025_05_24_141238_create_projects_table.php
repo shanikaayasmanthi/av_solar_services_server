@@ -27,7 +27,7 @@ return new class extends Migration
             $table->dateTime('project_installation_date')->nullable();
             $table->double('longitude');
             $table->double('lattitude');
-            $table->string('location');
+            $table->string('location')->nullable();
             $table->string('remarks')->nullable();
             $table->timestamps();
         });

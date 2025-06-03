@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('service_time')->nullable();
             $table->integer('service_round_no');
             $table->string('service_type');
+            $table->boolean('service_done')->default(false);
             $table->double('power')->nullable();
             $table->timestamp('power_time')->nullable();
             $table->boolean('wifi_connectivity')->nullable();
