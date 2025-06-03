@@ -19,8 +19,6 @@ class OffGridHybrid extends Model
         'wifi_username',
         'wifi_passowrd',
         'connection_type',
-        'longitude',
-        'lattitude',
         'remarks'
     ];
 

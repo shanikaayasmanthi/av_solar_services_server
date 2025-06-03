@@ -18,9 +18,7 @@ return new class extends Migration
             $table->string('electricity_bill_name');
             $table->string('wifi_username');
             $table->string('wifi_password');
-            $table->string('harmonic_meter');
-            $table->string('longitude')->nullable();
-            $table->string('lattitude')->nullable();
+            $table->string('harmonic_meter')->nullable();
             $table->string('remarks')->nullable();
             $table->timestamps();
         });
