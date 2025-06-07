@@ -24,6 +24,7 @@ Route::post('/logout',[AuthController::class,'logout'])->middleware('auth:sanctu
 //get services assigned for supervisor
 Route::post('/sup/services',[ServiceController::class,'getSupervisorAllServices'])->middleware('auth:sanctum');
 Route::post('sup/set_service_time',[ServiceController::class,'setServiceTime'])->middleware('auth:sanctum');
+Route::post('/sup/get_service_ProjectNo',[ServiceController::class,'getProjectNo'])->middleware('auth:sanctum');
 
 //routes for show location
 Route::get('/project-location/{id}', [ProjectController::class, 'getLocation']);
