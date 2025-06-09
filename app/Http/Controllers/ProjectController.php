@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Traits\HttpResponses;
 use Illuminate\Http\Request;
-use App\Models\Project;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Exception;
 
+use App\Models\Project;
 
 class ProjectController extends Controller
 {
@@ -48,5 +48,20 @@ class ProjectController extends Controller
         
 
 
+    }
+
+     public function getLocation($id)
+    {
+        $project = Project::find($id);
+
+        if ($project) {
+            return response()->json([
+                
+                'lattitude' => $project->lattitude, 
+                'longitude' => $project->longitude,
+            ]);
+        }
+
+        return response()->json(['error' => 'Project not found'], 404);
     }
 }

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('batteries', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('off_grid_hybrid_project_id'); 
-            $table->foreign('off_grid_hybrid_project_id')->references('off_grid_hybrid_project_id')->on('off_grid_hybrids');
+            $table->foreign('off_grid_hybrid_project_id')->references('off_grid_hybrid_project_id')->on('off_grid_hybrids')->onDelete('cascade');
             $table->string('battery_brand');
             $table->string('battery_model');
             $table->string('battery_capacity');
