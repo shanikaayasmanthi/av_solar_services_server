@@ -50,7 +50,7 @@ class ProjectController extends Controller
 
     }
 
-     public function getLocation($id)
+    public function getLocation($id)
     {
         $project = Project::find($id);
 
