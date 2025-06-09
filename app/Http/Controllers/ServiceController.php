@@ -95,4 +95,37 @@ class ServiceController extends Controller
             return $this->error('', $e, 500);
         }
     }
+
+    //get project id and offgrid or ongrid no from service id
+    public function getProjectNo(Request $request){
+        try {
+            $request->validate([
+                'user_id'=>'required|exists:supervisors,user_id',
+                'service_id'=>'required|exists:services,id'
+            ]);
+            log::info($request);
+
+            $service = Service::with(["project.onGrid","project.offGridHybrid"])->findOrFail($request->service_id);
+            log::info($service);
+            $project = $service->project;
+            $project_no = null;
+            if($project->type == "ongrid"&&$project->onGrid){
+                $project_no = $project->onGrid->on_grid_project_id;
+            }elseif($project->type == "offgrid"&&$project->offGridHybrid){
+                $project_no = $project->offGridHybrid->off_grid_hybrid_project_id;
+            }
+
+            return $this->success([
+                "project_id"=> $project->id,
+                "project_no"=>$project_no,
+                "project_name"=>$project->project_name
+            ]);
+
+        }catch(ValidationException $e ) {
+            return $this->error('', $e, 401);
+
+        }catch (Exception $e) {
+            return $this->error('', $e, 500);
+        }
+    }
 }

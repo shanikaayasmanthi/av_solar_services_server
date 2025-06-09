@@ -88,7 +88,7 @@ Visit: [http://localhost:8000](http://localhost:8000)
 Once the database is seeded, you can register a new user by visiting:
 
 ```
-http://localhost:8000/register
+http://localhost:8000/api/register
 ```
 
 ---
