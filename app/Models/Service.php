@@ -18,8 +18,10 @@ class Service extends Model
         'project_id',
         'service_date',
         'service_time',
+        'supervisor_id',
         'service_round_no',
         'service_type',
+        'service_done',
         'power',
         'power_time',
         'wifi_connectivity',
@@ -58,6 +60,10 @@ class Service extends Model
      public function ac()
      {
       return $this->hasOne(AC::class);
+     }
+
+     public function serviceTechniciant(){
+      return $this->hasMany(ServiceTechniciant::class);
      }
 }
 

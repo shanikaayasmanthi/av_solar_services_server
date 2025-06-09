@@ -14,12 +14,10 @@ return new class extends Migration
         Schema::create('off_grid_hybrids', function (Blueprint $table) {
             $table->id();
             $table->foreignId('project_id')->references('id')->on('projects')->onDelete('restrict');
-            $table->bigInteger('off_grid_hybrid_project_id');
+            $table->unsignedBigInteger('off_grid_hybrid_project_id');
             $table->string('wifi_username')->nullable();
             $table->string('wifi_passowrd')->nullable();
             $table->string('connection_type');
-            $table->string('longitude')->nullable();
-            $table->string('lattitude')->nullable();
             $table->string('remarks')->nullable();
             $table->timestamps();
         });
