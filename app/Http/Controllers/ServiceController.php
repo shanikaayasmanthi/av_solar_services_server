@@ -30,7 +30,7 @@ class ServiceController extends Controller
                 ->get()
                 ->map(function ($service) {
                     $project = $service->project;
-                    log::info($project->customer);
+                    // log::info($project->customer);
                     $phoneNumbers = $project->customer->customerPhoneNo->pluck('phone_no')->toArray() ?? [];
                     // log::info($project);            
                     // log::info($phoneNumbers);    // $project_no = null;
@@ -103,10 +103,10 @@ class ServiceController extends Controller
                 'user_id'=>'required|exists:supervisors,user_id',
                 'service_id'=>'required|exists:services,id'
             ]);
-            log::info($request);
+            // log::info($request);
 
             $service = Service::with(["project.onGrid","project.offGridHybrid"])->findOrFail($request->service_id);
-            log::info($service);
+            // log::info($service);
             $project = $service->project;
             $project_no = null;
             if($project->type == "ongrid"&&$project->onGrid){
