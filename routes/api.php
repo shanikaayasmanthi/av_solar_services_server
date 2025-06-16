@@ -10,6 +10,11 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+// Route to get all users
+Route::get('/users', function () {
+    return \App\Models\User::all();
+})->middleware('auth:sanctum');
+
 
 //public routes
 Route::post('/login', [AuthController::class,'login']);
