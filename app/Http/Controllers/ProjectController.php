@@ -139,18 +139,31 @@ class ProjectController extends Controller
 }
 
 
-    public function getLocation($id)
+  public function getLocation($id)
     {
-        $project = Project::find($id);
+        try {
+            // Added: Validate the route parameter $id to ensure it exists in the projects table
+            validator(['id' => $id], [
+                'id' => 'required|exists:projects,id'
+            ])->validate();
 
-        if ($project) {
-            return response()->json([
-                
-                'lattitude' => $project->lattitude, 
-                'longitude' => $project->longitude,
-            ]);
+            // Original logic: Fetch the project using the validated id
+            $project = Project::find($id);
+
+            if ($project) {
+                return response()->json([
+                    'lattitude' => $project->lattitude,
+                    'longitude' => $project->longitude,
+                ]);
+            }
+
+            return response()->json(['error' => 'Project not found'], 404);
+        } catch (ValidationException $e) {
+            // Added: Handle validation errors by returning a 404 with the error message
+            return response()->json(['error' => 'Invalid or missing project ID'], 404);
+        } catch (Exception $e) {
+            // Added: Handle unexpected errors with a generic 500 response
+            return response()->json(['error' => 'Error occurred'], 500);
         }
-
-        return response()->json(['error' => 'Project not found'], 404);
     }
 }
