@@ -140,30 +140,46 @@ class ProjectController extends Controller
 
 
   public function getLocation($id)
-    {
-        try {
-            // Added: Validate the route parameter $id to ensure it exists in the projects table
-            validator(['id' => $id], [
-                'id' => 'required|exists:projects,id'
-            ])->validate();
+{
+    try {
+        // Validate the ID
+        validator(['id' => $id], [
+            'id' => 'required|exists:projects,id'
+        ], [
+            'id.required' => 'Project ID is required',
+            'id.exists' => 'The specified project does not exist'
+        ])->validate();
 
-            // Original logic: Fetch the project using the validated id
-            $project = Project::find($id);
+        // Find the project
+        $project = Project::find($id);
+        
+        // Return success response with location data
+        return $this->success([
+            'lattitude' => $project->lattitude,
+            'longitude' => $project->longitude,
+        ]);
 
-            if ($project) {
-                return response()->json([
-                    'lattitude' => $project->lattitude,
-                    'longitude' => $project->longitude,
-                ]);
-            }
-
-            return response()->json(['error' => 'Project not found'], 404);
-        } catch (ValidationException $e) {
-            // Added: Handle validation errors by returning a 404 with the error message
-            return response()->json(['error' => 'Invalid or missing project ID'], 404);
-        } catch (Exception $e) {
-            // Added: Handle unexpected errors with a generic 500 response
-            return response()->json(['error' => 'Error occurred'], 500);
-        }
+    } catch (ValidationException $e) {
+        // Return validation error response
+        return response()->json([
+            'success' => false,
+            'code' => 'validation_error',
+            'error' => 'Invalid project ID',
+            'details' => $e->errors()
+        ], 404);
+        
+    } catch (Exception $e) {
+        // Return server error response
+        return response()->json([
+            'success' => false,
+            'code' => 'server_error', 
+            'error' => 'Server error',
+            'details' => config('app.debug') ? $e->getMessage() : null
+        ], 500);
     }
 }
+}
+
+        
+
+        
