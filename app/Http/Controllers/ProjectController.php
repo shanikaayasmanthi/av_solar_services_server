@@ -141,7 +141,8 @@ class ProjectController extends Controller
 }
 
 
-    public function getLocation($id)
+
+  public function getLocation($id)
 {
     try {
         // Validate the ID
