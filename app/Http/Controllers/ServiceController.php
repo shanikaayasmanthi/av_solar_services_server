@@ -164,14 +164,15 @@ public function getCompletedServicesByProject(Request $request)
     } catch (Exception $e) {
         return $this->error('', $e->getMessage(), 500);
     }
-
-    //save service data
-    public function saveServiceDetails(Request $request){
+}
+//save service data
+    public function saveServiceDetails(Request $request)
+    {
         try {
             $request->validate([
-                'user_id'=> 'required',
-                'service_id'=>'required|exists:services,id',
-                'service_data'=>'required'
+                'user_id' => 'required',
+                'service_id' => 'required|exists:services,id',
+                'service_data' => 'required'
             ]);
 
             $serviceData = json_decode($request->service_data);
@@ -179,115 +180,75 @@ public function getCompletedServicesByProject(Request $request)
 
             $service = Service::findOrFail($request->service_id);
             // log::info($service);
-            if($service->supervisor_id!= $request->user_id){
+            if ($service->supervisor_id != $request->user_id) {
                 return $this->error('', 'Unauthorized', 401);
-
             }
             $mainData = $serviceData->mainData;
             // Log::info("mainData",(array)$mainData);
-            $time =Carbon::today()->setTimeFromTimeString($mainData->time)->toDateTimeString();
+            $time = Carbon::today()->setTimeFromTimeString($mainData->time)->toDateTimeString();
 
             // log::info($time);
             // log::info((double)$mainData->power);
             $result = $service->update([
-                'power' => (double)$mainData->power,
-                'power_time' =>$time,
+                'power' => (float)$mainData->power,
+                'power_time' => $time,
                 'wifi_connectivity' => $mainData->wifiConnectivity ?? false,
                 'capture_last_bill' => $mainData->electricityBill ?? false,
-]);
-            if($result){
+            ]);
+            if ($result) {
                 //correct till here
                 $dc = $serviceData->dc;
                 $dcController = new DCController();
 
                 $dcResult = $dcController->saveServiceDCData($request->service_id, $dc);
-                
-                if($dcResult){
+
+                if ($dcResult) {
                     $ac = $serviceData->ac;
                     $acController = new ACController();
 
-                    $acResult = $acController->saveServiceACData($request->service_id,$ac);
+                    $acResult = $acController->saveServiceACData($request->service_id, $ac);
 
-                    if($acResult){
+                    if ($acResult) {
                         $roofWork = $serviceData->roof_work;
 
                         $roofWorkController = new RoofWorkController();
-                        $roofWorkResult = $roofWorkController->saveServiceRoofWorkData($request->service_id,$roofWork);
-                        if($roofWorkResult){
+                        $roofWorkResult = $roofWorkController->saveServiceRoofWorkData($request->service_id, $roofWork);
+                        if ($roofWorkResult) {
                             $outDoorWork = $serviceData->outdoor_work;
 
                             $outDoorWorkController = new OutdoorWorkController();
-                            $outDoorWorkResult = $outDoorWorkController->saveServiceOutDoorWork($request->service_id,$outDoorWork);
-                            if($outDoorWorkResult){
+                            $outDoorWorkResult = $outDoorWorkController->saveServiceOutDoorWork($request->service_id, $outDoorWork);
+                            if ($outDoorWorkResult) {
                                 $mainPanelWork = $serviceData->mainpanel_work;
 
                                 $mainPanelWorkController = new MainPanelWorkController();
-                                $mainPanelWorkResult = $mainPanelWorkController->saveServiceMainPanelWork($request->service_id,$mainPanelWork);
-                                if($mainPanelWorkResult){
+                                $mainPanelWorkResult = $mainPanelWorkController->saveServiceMainPanelWork($request->service_id, $mainPanelWork);
+                                if ($mainPanelWorkResult) {
                                     $technicians = $serviceData->technicians;
                                     if (!empty($technicians)) {
                                         $technicianController = new ServiceTechniciantController();
-                                        $techResult = $technicianController->saveServiceTechnicians($request->service_id,$technicians);
+                                        $techResult = $technicianController->saveServiceTechnicians($request->service_id, $technicians);
 
-                                        if($techResult){
-                                            Service::where('id',$request->service_id)->update([
-                                                'service_done'=>true,
+                                        if ($techResult) {
+                                            Service::where('id', $request->service_id)->update([
+                                                'service_done' => true,
 
                                             ]);
                                             return true;
-                                        }else{
+                                        } else {
                                             return false;
                                         }
                                     }
                                 }
-                                
                             }
-
                         }
                     }
-                }                
+                }
             }
-        }catch(ValidationException $e){
+        } catch (ValidationException $e) {
             return $this->error('', $e, 401);
-
-        }catch(Exception $e){
+        } catch (Exception $e) {
             return $this->error('', $e, 500);
         }
     }
-
-    // In ServiceController.php
-public function getCompletedServicesByProject(Request $request)
-{
-    try {
-        $request->validate([
-            'project_id' => 'required|exists:projects,id'
-        ]);
-
-        $services = Service::with(['outdoorWork', 'roofWork', 'mainPanelWork', 'dc', 'ac'])
-            ->where('project_id', $request->project_id)
-            ->where('service_done', true)
-            ->orderBy('service_date', 'desc')
-            ->get()
-            ->map(function ($service) {
-                return [
-                    'service_round' => $service->service_round_no,
-                    'service_type' => $service->service_type,
-                    'service_date' => $service->service_date,
-                    'service_time' => $service->service_time,
-                    'remarks' => $service->remarks,
-                    'outdoor_work' => $service->outdoorWork,
-                    'roof_work' => $service->roofWork,
-                    'main_panel_work' => $service->mainPanelWork,
-                    'dc_work' => $service->dc,
-                    'ac_work' => $service->ac,
-                    'is_paid' => $service->service_type === 'paid', // Determine if paid service
-                ];
-            });
-
-        return $this->success(['services' => $services]);
-    } catch (Exception $e) {
-        return $this->error('', $e->getMessage(), 500);
-    }
-}
-}
 }
