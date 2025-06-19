@@ -15,7 +15,7 @@ class MainPanelWork extends Model
      */
 
      protected $fillable = [
-        'seervice_id',
+        'service_id',
         'on_grid_valtage',
         'on_grid_valtage_comments',
         'off_grid_valtage',

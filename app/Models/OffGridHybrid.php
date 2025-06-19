@@ -24,11 +24,11 @@ class OffGridHybrid extends Model
 
     public function project()
      {
-        return $this->belongsTo(Project::class);;
+        return $this->belongsTo(Project::class);
      }
 
      public function battery()
      {
-        return $this->hasOne(Battery::class);
+        return $this->hasOne(Battery::class,'off_grid_hybrid_project_id','off_grid_hybrid_project_id');
      }
 }
