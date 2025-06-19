@@ -127,5 +127,40 @@ class ServiceController extends Controller
         }catch (Exception $e) {
             return $this->error('', $e, 500);
         }
+    } 
+
+ // In ServiceController.php
+public function getCompletedServicesByProject(Request $request)
+{
+    try {
+        $request->validate([
+            'project_id' => 'required|exists:projects,id'
+        ]);
+
+        $services = Service::with(['outdoorWork', 'roofWork', 'mainPanelWork', 'dc', 'ac'])
+            ->where('project_id', $request->project_id)
+            ->where('service_done', true)
+            ->orderBy('service_date', 'desc')
+            ->get()
+            ->map(function ($service) {
+                return [
+                    'service_round' => $service->service_round_no,
+                    'service_type' => $service->service_type,
+                    'service_date' => $service->service_date,
+                    'service_time' => $service->service_time,
+                    'remarks' => $service->remarks,
+                    'outdoor_work' => $service->outdoorWork,
+                    'roof_work' => $service->roofWork,
+                    'main_panel_work' => $service->mainPanelWork,
+                    'dc_work' => $service->dc,
+                    'ac_work' => $service->ac,
+                    'is_paid' => $service->service_type === 'paid', // Determine if paid service
+                ];
+            });
+
+        return $this->success(['services' => $services]);
+    } catch (Exception $e) {
+        return $this->error('', $e->getMessage(), 500);
     }
+}
 }
