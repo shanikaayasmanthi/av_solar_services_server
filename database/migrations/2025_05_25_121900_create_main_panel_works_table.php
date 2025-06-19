@@ -42,7 +42,7 @@ return new class extends Migration
             $table->string('e_today_invertor_comments')->nullable();
             $table->string('e_total_invertor')->nullable();
             $table->string('e_total_invertor_comments')->nullable();
-            $table->boolean('power_bulb_blinking_style')->nullable();
+            $table->string('power_bulb_blinking_style')->nullable();
             $table->string('power_bulb_blinking_style_comments')->nullable();
             $table->boolean('alta_vision_sticker')->nullable();
             $table->string('alta_vision_sticker_comments')->nullable();
