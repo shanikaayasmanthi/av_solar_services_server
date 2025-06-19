@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use App\Models\Service;
 use App\Traits\HttpResponses;
 use Exception;
@@ -10,6 +11,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
 
 use function PHPSTORM_META\map;
+use function PHPUnit\Framework\isEmpty;
 
 class ServiceController extends Controller
 {
@@ -125,6 +127,96 @@ class ServiceController extends Controller
             return $this->error('', $e, 401);
 
         }catch (Exception $e) {
+            return $this->error('', $e, 500);
+        }
+    }
+
+    //save service data
+    public function saveServiceDetails(Request $request){
+        try {
+            $request->validate([
+                'user_id'=> 'required',
+                'service_id'=>'required|exists:services,id',
+                'service_data'=>'required'
+            ]);
+
+            $serviceData = json_decode($request->service_data);
+            // log::info('servicedata',(array)$serviceData);
+
+            $service = Service::findOrFail($request->service_id);
+            // log::info($service);
+            if($service->supervisor_id!= $request->user_id){
+                return $this->error('', 'Unauthorized', 401);
+
+            }
+            $mainData = $serviceData->mainData;
+            // Log::info("mainData",(array)$mainData);
+            $time =Carbon::today()->setTimeFromTimeString($mainData->time)->toDateTimeString();
+
+            // log::info($time);
+            // log::info((double)$mainData->power);
+            $result = $service->update([
+                'power' => (double)$mainData->power,
+                'power_time' =>$time,
+                'wifi_connectivity' => $mainData->wifiConnectivity ?? false,
+                'capture_last_bill' => $mainData->electricityBill ?? false,
+]);
+            if($result){
+                //correct till here
+                $dc = $serviceData->dc;
+                $dcController = new DCController();
+
+                $dcResult = $dcController->saveServiceDCData($request->service_id, $dc);
+                
+                if($dcResult){
+                    $ac = $serviceData->ac;
+                    $acController = new ACController();
+
+                    $acResult = $acController->saveServiceACData($request->service_id,$ac);
+
+                    if($acResult){
+                        $roofWork = $serviceData->roof_work;
+
+                        $roofWorkController = new RoofWorkController();
+                        $roofWorkResult = $roofWorkController->saveServiceRoofWorkData($request->service_id,$roofWork);
+                        if($roofWorkResult){
+                            $outDoorWork = $serviceData->outdoor_work;
+
+                            $outDoorWorkController = new OutdoorWorkController();
+                            $outDoorWorkResult = $outDoorWorkController->saveServiceOutDoorWork($request->service_id,$outDoorWork);
+                            if($outDoorWorkResult){
+                                $mainPanelWork = $serviceData->mainpanel_work;
+
+                                $mainPanelWorkController = new MainPanelWorkController();
+                                $mainPanelWorkResult = $mainPanelWorkController->saveServiceMainPanelWork($request->service_id,$mainPanelWork);
+                                if($mainPanelWorkResult){
+                                    $technicians = $serviceData->technicians;
+                                    if (!empty($technicians)) {
+                                        $technicianController = new ServiceTechniciantController();
+                                        $techResult = $technicianController->saveServiceTechnicians($request->service_id,$technicians);
+
+                                        if($techResult){
+                                            Service::where('id',$request->service_id)->update([
+                                                'service_done'=>true,
+
+                                            ]);
+                                            return true;
+                                        }else{
+                                            return false;
+                                        }
+                                    }
+                                }
+                                
+                            }
+
+                        }
+                    }
+                }                
+            }
+        }catch(ValidationException $e){
+            return $this->error('', $e, 401);
+
+        }catch(Exception $e){
             return $this->error('', $e, 500);
         }
     }

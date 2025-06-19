@@ -23,6 +23,6 @@ class Battery extends Model
 
     public function offGridHybrid()
     {
-        return $this->belongsTo(OffGridHybrid::class);
+        return $this->belongsTo(OffGridHybrid::class,'off_grid_hybrid_project_id','off_grid_hybrid_project_id');
     }
 }

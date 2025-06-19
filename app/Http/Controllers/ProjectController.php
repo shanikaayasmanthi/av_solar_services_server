@@ -117,13 +117,15 @@ class ProjectController extends Controller
             ]);
         } elseif ($project->type == "offgrid") {
             $offgrid = $project->offGridHybrid;
+            // log::info($offgrid);
+            log::info($offgrid->battery);
             $battery = $offgrid?->battery;
             unset($project["onGrid"]);
             unset($project["offGridHybrid"]);
             unset($offgrid["battery"]);
             return $this->success([
                 "project"=>$project,
-                "off_grid_hybrid"=>$$offgrid,
+                "off_grid_hybrid"=>$offgrid,
                 "solar_panel"=>$solarPanels,
                 "invertor"=>$invertors,
                 "battery"=>$battery,
