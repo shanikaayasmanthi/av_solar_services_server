@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Models\Service;
 use App\Traits\HttpResponses;
@@ -166,89 +167,102 @@ public function getCompletedServicesByProject(Request $request)
     }
 }
 //save service data
-    public function saveServiceDetails(Request $request)
-    {
-        try {
-            $request->validate([
-                'user_id' => 'required',
-                'service_id' => 'required|exists:services,id',
-                'service_data' => 'required'
-            ]);
+public function saveServiceDetails(Request $request)
+{
+    try {
+        $request->validate([
+            'user_id' => 'required',
+            'service_id' => 'required|exists:services,id',
+            'service_data' => 'required'
+        ]);
 
-            $serviceData = json_decode($request->service_data);
-            // log::info('servicedata',(array)$serviceData);
+        $serviceData = json_decode($request->service_data);
 
-            $service = Service::findOrFail($request->service_id);
-            // log::info($service);
-            if ($service->supervisor_id != $request->user_id) {
-                return $this->error('', 'Unauthorized', 401);
-            }
-            $mainData = $serviceData->mainData;
-            // Log::info("mainData",(array)$mainData);
-            $time = Carbon::today()->setTimeFromTimeString($mainData->time)->toDateTimeString();
+        $service = Service::findOrFail($request->service_id);
 
-            // log::info($time);
-            // log::info((double)$mainData->power);
-            $result = $service->update([
-                'power' => (float)$mainData->power,
-                'power_time' => $time,
-                'wifi_connectivity' => $mainData->wifiConnectivity ?? false,
-                'capture_last_bill' => $mainData->electricityBill ?? false,
-            ]);
-            if ($result) {
-                //correct till here
-                $dc = $serviceData->dc;
-                $dcController = new DCController();
-
-                $dcResult = $dcController->saveServiceDCData($request->service_id, $dc);
-
-                if ($dcResult) {
-                    $ac = $serviceData->ac;
-                    $acController = new ACController();
-
-                    $acResult = $acController->saveServiceACData($request->service_id, $ac);
-
-                    if ($acResult) {
-                        $roofWork = $serviceData->roof_work;
-
-                        $roofWorkController = new RoofWorkController();
-                        $roofWorkResult = $roofWorkController->saveServiceRoofWorkData($request->service_id, $roofWork);
-                        if ($roofWorkResult) {
-                            $outDoorWork = $serviceData->outdoor_work;
-
-                            $outDoorWorkController = new OutdoorWorkController();
-                            $outDoorWorkResult = $outDoorWorkController->saveServiceOutDoorWork($request->service_id, $outDoorWork);
-                            if ($outDoorWorkResult) {
-                                $mainPanelWork = $serviceData->mainpanel_work;
-
-                                $mainPanelWorkController = new MainPanelWorkController();
-                                $mainPanelWorkResult = $mainPanelWorkController->saveServiceMainPanelWork($request->service_id, $mainPanelWork);
-                                if ($mainPanelWorkResult) {
-                                    $technicians = $serviceData->technicians;
-                                    if (!empty($technicians)) {
-                                        $technicianController = new ServiceTechniciantController();
-                                        $techResult = $technicianController->saveServiceTechnicians($request->service_id, $technicians);
-
-                                        if ($techResult) {
-                                            Service::where('id', $request->service_id)->update([
-                                                'service_done' => true,
-
-                                            ]);
-                                            return true;
-                                        } else {
-                                            return false;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (ValidationException $e) {
-            return $this->error('', $e, 401);
-        } catch (Exception $e) {
-            return $this->error('', $e, 500);
+        if ($service->supervisor_id != $request->user_id) {
+            return $this->error('', 'Unauthorized', 401);
         }
+
+        //Wrap everything inside a transaction:
+        DB::beginTransaction();
+
+        // Update Service mainData
+        $mainData = $serviceData->mainData;
+        $time = Carbon::today()->setTimeFromTimeString($mainData->time)->toDateTimeString();
+
+        $service->update([
+            'power' => (float)$mainData->power,
+            'power_time' => $time,
+            'wifi_connectivity' => $mainData->wifiConnectivity ?? false,
+            'capture_last_bill' => $mainData->electricityBill ?? false,
+        ]);
+
+        // Save DC
+        $dc = $serviceData->dc;
+        $dcController = new DCController();
+        if (!$dcController->saveServiceDCData($request->service_id, $dc)) {
+            DB::rollBack();
+            return $this->error('', 'Failed saving DC', 500);
+        }
+
+        // Save AC
+        $ac = $serviceData->ac;
+        $acController = new ACController();
+        if (!$acController->saveServiceACData($request->service_id, $ac)) {
+            DB::rollBack();
+            return $this->error('', 'Failed saving AC', 500);
+        }
+
+        // Save RoofWork
+        $roofWork = $serviceData->roof_work;
+        $roofWorkController = new RoofWorkController();
+        if (!$roofWorkController->saveServiceRoofWorkData($request->service_id, $roofWork)) {
+            DB::rollBack();
+            return $this->error('', 'Failed saving RoofWork', 500);
+        }
+
+        // Save OutdoorWork
+        $outDoorWork = $serviceData->outdoor_work;
+        $outDoorWorkController = new OutdoorWorkController();
+        if (!$outDoorWorkController->saveServiceOutDoorWork($request->service_id, $outDoorWork)) {
+            DB::rollBack();
+            return $this->error('', 'Failed saving OutdoorWork', 500);
+        }
+
+        // Save MainPanelWork
+        $mainPanelWork = $serviceData->mainpanel_work;
+        $mainPanelWorkController = new MainPanelWorkController();
+        if (!$mainPanelWorkController->saveServiceMainPanelWork($request->service_id, $mainPanelWork)) {
+            DB::rollBack();
+            return $this->error('', 'Failed saving MainPanelWork', 500);
+        }
+
+        // Save Technicians
+        $technicians = $serviceData->technicians;
+        if (!empty($technicians)) {
+            $technicianController = new ServiceTechniciantController();
+            if (!$technicianController->saveServiceTechnicians($request->service_id, $technicians)) {
+                DB::rollBack();
+                return $this->error('', 'Failed saving Technicians', 500);
+            }
+        }
+
+        // Finally: Mark Service done
+        $service->update([
+            'service_done' => true,
+        ]);
+
+        //Everything is fine commit
+        DB::commit();
+        return $this->success('', 'Service saved successfully');
+
+    } catch (ValidationException $e) {
+        return $this->error('', $e, 401);
+    } catch (Exception $e) {
+        DB::rollBack();  // rollback on any unexpected error
+        return $this->error('', $e->getMessage(), 500);
     }
+}
+
 }

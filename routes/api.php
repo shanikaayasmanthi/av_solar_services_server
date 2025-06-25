@@ -18,6 +18,7 @@ Route::post('/register', [AuthController::class,'register']);
 
 //protecterd routes
 Route::post('/logout',[AuthController::class,'logout'])->middleware('auth:sanctum');
+Route::post('/change_password',[AuthController::class,'changePassword'])->middleware('auth:sanctum');
 
 //mobile apis
 //get services assigned for supervisor
