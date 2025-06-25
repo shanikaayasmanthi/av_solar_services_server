@@ -7,19 +7,27 @@ use Illuminate\Http\Request;
 
 class ServiceTechniciantController extends Controller
 {
-    public function saveServiceTechnicians($serviceId,$technicians){
-        foreach($technicians as $technician){
+    public function saveServiceTechnicians($serviceId, $technicians)
+{
+    try {
+        foreach ($technicians as $technician) {
             $data = [
-                "service_id"=>$serviceId,
-                "techniciant_name"=>$technician
+                "service_id" => $serviceId,
+                "techniciant_name" => $technician
             ];
             $result = ServiceTechniciant::create($data);
 
-            if($result){
-                return true;
-            }else{
-                return false;
+            if (!$result) {
+                throw new \Exception("Failed to save technician: " . $technician);
             }
         }
+
+        // If all inserts are done successfully:
+        return true;
+
+    } catch (\Exception $e) {
+        throw $e;  // throw to parent
     }
+}
+
 }
