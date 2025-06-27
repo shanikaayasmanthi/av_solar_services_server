@@ -31,6 +31,12 @@ Route::post('sup/set_service_time',[ServiceController::class,'setServiceTime'])-
 Route::post('/sup/get_service_ProjectNo',[ServiceController::class,'getProjectNo'])->middleware('auth:sanctum');
 Route::post('/sup/get_customer',[ProjectController::class,'getCustomer'])->middleware('auth:sanctum');
 Route::post('/sup/get_project',[ProjectController::class,'getprojectDetails'])->middleware('auth:sanctum');
+Route::post('/addcustomers', [CustomerController::class, 'store'])->middleware('auth:sanctum');
+Route::post('/openproject', [ProjectController::class, 'openProject'])->middleware('auth:sanctum');
+Route::get('/find-customer', [CustomerController::class, 'find'])->middleware('auth:sanctum');
+Route::get('/get-projects', [ProjectController::class, 'getAllProjects'])->middleware('auth:sanctum');
 
 // get project location
 Route::get('/project-location/{id}', [ProjectController::class, 'getLocation']);
+
+

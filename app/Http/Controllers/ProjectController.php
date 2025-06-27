@@ -153,4 +153,74 @@ class ProjectController extends Controller
 
         return response()->json(['error' => 'Project not found'], 404);
     }
+
+
+
+
+
+     public function openProject(Request $request)
+    {
+        $request->validate([
+            'customer_id' => 'required|exists:customers,user_id',
+            'type' => 'required|in:on_grids,offgridhybrids',
+            'project_name' => 'nullable|string',
+            'project_address' => 'required|string',
+            'neatest_town' => 'required|string',
+            'no_of_panels' => 'required|integer|min:1',
+            'panel_capacity' => 'numeric|min:0.1',
+            'service_years_in_agreement' => 'required|integer|min:1',
+            'service_rounds_in_agreement' => 'required|integer|min:1',
+            'project_installation_date' => 'required|date',
+            'longitude' => 'nullable|numeric',
+            'lattitude' => 'nullable|numeric',
+            'location' => 'nullable|string',
+            'remarks' => 'nullable|string',
+        ]);
+
+        $project = Project::create([
+            'customer_id' => $request->customer_id,
+            'type' => $request->type,
+            'project_name' => $request->project_name,
+            'project_address' => $request->project_address,
+            'neatest_town' => $request->neatest_town,
+            'no_of_panels' => $request->no_of_panels,
+            'panel_capacity' => $request->panel_capacity,
+            'service_years_in_agreement' => $request->service_years_in_agreement,
+            'service_rounds_in_agreement' => $request->service_rounds_in_agreement,
+            'project_installation_date' => $request->project_installation_date,
+            'system_on' => now(), // or set it explicitly
+            'longitude' => $request->longitude,
+            'lattitude' => $request->lattitude,
+            'location' => $request->location,
+            'remarks' => $request->remarks,
+        ]);
+
+        return response()->json([
+            'message' => 'Project created successfully.',
+            'project' => $project
+        ], 201);
+    }
+    
+
+    public function getAllProjects()
+{
+    try {
+        $projects = Project::with(['customer'])   
+            ->orderBy('created_at', 'desc')
+            //->paginate(6);
+             ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'projects' => $projects
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Failed to retrieve projects',
+        ], 500);
+    }
+}
+
+
 }
