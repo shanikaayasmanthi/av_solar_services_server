@@ -117,13 +117,15 @@ class ProjectController extends Controller
             ]);
         } elseif ($project->type == "offgrid") {
             $offgrid = $project->offGridHybrid;
+            // log::info($offgrid);
+            log::info($offgrid->battery);
             $battery = $offgrid?->battery;
             unset($project["onGrid"]);
             unset($project["offGridHybrid"]);
             unset($offgrid["battery"]);
             return $this->success([
                 "project"=>$project,
-                "off_grid_hybrid"=>$$offgrid,
+                "off_grid_hybrid"=>$offgrid,
                 "solar_panel"=>$solarPanels,
                 "invertor"=>$invertors,
                 "battery"=>$battery,
@@ -139,19 +141,44 @@ class ProjectController extends Controller
 }
 
 
-    public function getLocation($id)
-    {
+
+  public function getLocation($id)
+{
+    try {
+        // Validate the ID
+        validator(['id' => $id], [
+            'id' => 'required|exists:projects,id'
+        ], [
+            'id.required' => 'Project ID is required',
+            'id.exists' => 'The specified project does not exist'
+        ])->validate();
+
+        // Find the project
         $project = Project::find($id);
+        
+        // Return success response with location data
+        return $this->success([
+            'lattitude' => $project->lattitude,
+            'longitude' => $project->longitude,
+        ]);
 
-        if ($project) {
-            return response()->json([
-                
-                'lattitude' => $project->lattitude, 
-                'longitude' => $project->longitude,
-            ]);
-        }
-
-        return response()->json(['error' => 'Project not found'], 404);
+    } catch (ValidationException $e) {
+        // Return validation error response
+        return response()->json([
+            'success' => false,
+            'code' => 'validation_error',
+            'error' => 'Invalid project ID',
+            'details' => $e->errors()
+        ], 404);
+        
+    } catch (Exception $e) {
+        // Return server error response
+        return response()->json([
+            'success' => false,
+            'code' => 'server_error', 
+            'error' => 'Server error',
+            'details' => config('app.debug') ? $e->getMessage() : null
+        ], 500);
     }
 
 
@@ -223,4 +250,5 @@ class ProjectController extends Controller
 }
 
 
+}
 }

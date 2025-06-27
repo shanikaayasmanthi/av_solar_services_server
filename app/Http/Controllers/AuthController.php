@@ -110,4 +110,35 @@ class AuthController extends Controller
         return $this->error('Server Error',$e,500);
        }
     }
+
+    public function changePassword(Request $request){
+        try{
+            $request->validate([
+                'user_id'=>'required|exists:users,id',
+                'oldpassword'=>'required',
+                'newpassword'=>'required|confirmed'
+            ]);
+            $user = User::find($request->user_id);
+            Log::info($user);
+            if(!$user || !Hash::check($request->oldpassword,$user->password))
+        {
+            Log::info('here');
+            return $this->error('','Credentials do not match',401);
+        }
+        if($user){
+            $user->password = Hash::make($request->newpassword);
+            $user->save();
+            Log::info('done');
+            return $this->success('','Succesfully Updated');
+        }
+        return $this->error('','User not Found',404);
+
+        }catch(ValidationException $e){
+            Log::info($e);
+            return $this->error('','validation error',422);
+        }catch(Exception $e){
+            Log::info($e);
+            return $this->error('Server Error',$e,500);
+        }
+    }
 }
