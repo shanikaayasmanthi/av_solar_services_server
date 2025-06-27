@@ -18,7 +18,8 @@ class UserTypeSeeder extends Seeder
         UserType::insert([
             ['name'=>"admin"],
             ['name'=>"supervisor"],
-            ['name'=>"customer"]
+            ['name'=>"customer"],
+            ['name'=>"Super Admin"]
         ]);
     }
 }

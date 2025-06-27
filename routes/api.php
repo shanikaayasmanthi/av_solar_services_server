@@ -10,6 +10,11 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+// Route to get all users
+Route::get('/users', function () {
+    return \App\Models\User::all();
+})->middleware('auth:sanctum');
+
 
 //public routes
 Route::post('/login', [AuthController::class,'login']);
@@ -28,6 +33,10 @@ Route::post('/sup/get_service_ProjectNo',[ServiceController::class,'getProjectNo
 Route::post('/sup/get_customer',[ProjectController::class,'getCustomer'])->middleware('auth:sanctum');
 Route::post('/sup/get_project',[ProjectController::class,'getprojectDetails'])->middleware('auth:sanctum');
 Route::post('/sup/save_service_data',[ServiceController::class,'saveServiceDetails'])->middleware('auth:sanctum');
+Route::post('/addcustomers', [CustomerController::class, 'store'])->middleware('auth:sanctum');
+Route::post('/openproject', [ProjectController::class, 'openProject'])->middleware('auth:sanctum');
+Route::get('/find-customer', [CustomerController::class, 'find'])->middleware('auth:sanctum');
+Route::get('/get-projects', [ProjectController::class, 'getAllProjects'])->middleware('auth:sanctum');
 
 // get project location
 Route::get('/project-location/{id}', [ProjectController::class, 'getLocation'])->middleware('auth:sanctum');
@@ -35,3 +44,6 @@ Route::get('/project-location/{id}', [ProjectController::class, 'getLocation'])-
 
 //for get completed services summary
 Route::post('/sup/get_completed_services_by_project', [ServiceController::class, 'getCompletedServicesByProject'])->middleware('auth:sanctum');
+Route::get('/project-location/{id}', [ProjectController::class, 'getLocation']);
+
+

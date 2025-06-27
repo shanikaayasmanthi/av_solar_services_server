@@ -117,15 +117,13 @@ class ProjectController extends Controller
             ]);
         } elseif ($project->type == "offgrid") {
             $offgrid = $project->offGridHybrid;
-            // log::info($offgrid);
-            log::info($offgrid->battery);
             $battery = $offgrid?->battery;
             unset($project["onGrid"]);
             unset($project["offGridHybrid"]);
             unset($offgrid["battery"]);
             return $this->success([
                 "project"=>$project,
-                "off_grid_hybrid"=>$offgrid,
+                "off_grid_hybrid"=>$$offgrid,
                 "solar_panel"=>$solarPanels,
                 "invertor"=>$invertors,
                 "battery"=>$battery,
@@ -141,44 +139,88 @@ class ProjectController extends Controller
 }
 
 
-
-  public function getLocation($id)
-{
-    try {
-        // Validate the ID
-        validator(['id' => $id], [
-            'id' => 'required|exists:projects,id'
-        ], [
-            'id.required' => 'Project ID is required',
-            'id.exists' => 'The specified project does not exist'
-        ])->validate();
-
-        // Find the project
+    public function getLocation($id)
+    {
         $project = Project::find($id);
-        
-        // Return success response with location data
-        return $this->success([
-            'lattitude' => $project->lattitude,
-            'longitude' => $project->longitude,
+
+        if ($project) {
+            return response()->json([
+                
+                'lattitude' => $project->lattitude, 
+                'longitude' => $project->longitude,
+            ]);
+        }
+
+        return response()->json(['error' => 'Project not found'], 404);
+    }
+
+
+
+
+
+     public function openProject(Request $request)
+    {
+        $request->validate([
+            'customer_id' => 'required|exists:customers,user_id',
+            'type' => 'required|in:on_grids,offgridhybrids',
+            'project_name' => 'nullable|string',
+            'project_address' => 'required|string',
+            'neatest_town' => 'required|string',
+            'no_of_panels' => 'required|integer|min:1',
+            'panel_capacity' => 'numeric|min:0.1',
+            'service_years_in_agreement' => 'required|integer|min:1',
+            'service_rounds_in_agreement' => 'required|integer|min:1',
+            'project_installation_date' => 'required|date',
+            'longitude' => 'nullable|numeric',
+            'lattitude' => 'nullable|numeric',
+            'location' => 'nullable|string',
+            'remarks' => 'nullable|string',
         ]);
 
-    } catch (ValidationException $e) {
-        // Return validation error response
+        $project = Project::create([
+            'customer_id' => $request->customer_id,
+            'type' => $request->type,
+            'project_name' => $request->project_name,
+            'project_address' => $request->project_address,
+            'neatest_town' => $request->neatest_town,
+            'no_of_panels' => $request->no_of_panels,
+            'panel_capacity' => $request->panel_capacity,
+            'service_years_in_agreement' => $request->service_years_in_agreement,
+            'service_rounds_in_agreement' => $request->service_rounds_in_agreement,
+            'project_installation_date' => $request->project_installation_date,
+            'system_on' => now(), // or set it explicitly
+            'longitude' => $request->longitude,
+            'lattitude' => $request->lattitude,
+            'location' => $request->location,
+            'remarks' => $request->remarks,
+        ]);
+
         return response()->json([
-            'success' => false,
-            'code' => 'validation_error',
-            'error' => 'Invalid project ID',
-            'details' => $e->errors()
-        ], 404);
-        
-    } catch (Exception $e) {
-        // Return server error response
+            'message' => 'Project created successfully.',
+            'project' => $project
+        ], 201);
+    }
+    
+
+    public function getAllProjects()
+{
+    try {
+        $projects = Project::with(['customer'])   
+            ->orderBy('created_at', 'desc')
+            //->paginate(6);
+             ->get();
+
         return response()->json([
-            'success' => false,
-            'code' => 'server_error', 
-            'error' => 'Server error',
-            'details' => config('app.debug') ? $e->getMessage() : null
+            'status' => 'success',
+            'projects' => $projects
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Failed to retrieve projects',
         ], 500);
     }
 }
+
+
 }
