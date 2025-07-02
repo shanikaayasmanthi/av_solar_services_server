@@ -12,6 +12,10 @@ class Customer extends Model
      *
      * @var list<string>
      */
+    protected $primaryKey = 'user_id';
+    public $incrementing = false;
+    protected $keyType = 'int';
+
     protected $fillable = [
         'user_id',
         'name',
@@ -26,7 +30,7 @@ class Customer extends Model
 
     public function project()
     {
-        return $this->hasMany(Project::class,'user_id','customer_id');
+        return $this->hasMany(Project::class,'customer_id','user_id');
     }
 
     public function customerPhoneNo(){

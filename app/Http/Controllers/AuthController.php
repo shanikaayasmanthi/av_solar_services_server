@@ -56,6 +56,8 @@ class AuthController extends Controller
             'email'=>'required|email|unique:users',
             'user_type' => 'required|string|exists:user_types,name',
             'password'=>'required|confirmed'
+            
+            
         ]);
 
         $userTypeID = UserType::where('name',$request['user_type'])->firstOrFail()->id;
@@ -68,7 +70,9 @@ class AuthController extends Controller
             'user_type_id'=>$userTypeID
         ];
 
-        $user = User::create($fields);
+        $user = User::create($fields); 
+
+      
 
         switch($request['user_type'])
         {
@@ -87,7 +91,10 @@ class AuthController extends Controller
             case 'customer':
                 Customer::create([
                     'user_id'=>$user->id,
-                    'name'=>$user->name
+                    'name'=>$user->name,
+                    'nic'=>$request['nic'] ?? null, 
+                    'phone'=>$request['phone'] ?? null,
+                    'address'=>$request['address'] ?? null
                 ]);
                 break;
         }

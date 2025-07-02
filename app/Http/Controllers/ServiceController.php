@@ -18,6 +18,145 @@ class ServiceController extends Controller
 {
     use HttpResponses;
 
+ 
+
+ // Get all scheduled services that are not yet completed 
+ 
+public function getAllScheduledServices(Request $request)
+{
+    try {
+        // Validate the request (no specific parameters required for this endpoint, but adding a placeholder)
+        $request->validate([
+            // No specific validation needed for this endpoint as it fetches all scheduled services
+            // You can add optional filters if needed, e.g., 'supervisor_id' => 'exists:supervisors,user_id'
+        ]);
+
+        $services = Service::with([
+                'project.onGrid', 
+                'project.offGridHybrid', 
+                'project.customer.customerPhoneNo'
+            ])
+            ->where('service_done', false)
+            ->get()
+            ->map(function ($service) {
+                $project = $service->project;
+                if (!$project) {
+                    return null; // Skip if project is missing
+                }
+
+                
+                $project_no = null;
+                if ($project->type == 'ongrid') {
+                    $project_no = $project->onGrid->on_grid_project_id ?? null;
+                } else if ($project->type == 'offgrid') {
+                    $project_no = $project->offGridHybrid->off_grid_hybrid_project_id ?? null;
+                }
+                
+                // Get technician names as assigned supervisors
+                $supervisor_name = null;
+                if ($service->supervisor_id) {
+                    $supervisor = \App\Models\User::find($service->supervisor_id);
+                    $supervisor_name = $supervisor ? $supervisor->name : null;
+                }
+
+                $customer_name = $project->customer ? $project->customer->name : null;
+
+                return [
+                    'project_no' => $project_no,
+                    'customer_name' => $customer_name,
+                    'service_round' => $service->service_round_no ?? null,
+                    'service_date' => $service->service_date ?? null,
+                    'service_time' => $service->service_time ?? null,
+                    'supervisors' => $supervisor_name ? [$supervisor_name] : [], // Wrap in an array for consistency
+                ];
+            })->filter(); // Remove any null entries
+
+        return $this->success(['services' => $services]);
+    } catch (ValidationException $e) {
+        return $this->error('', 'Unauthorized access', 401);
+    } catch (Exception $e) {
+        return $this->error('', $e->getMessage(), 500);
+    }
+}
+
+//get all projects atleast one service is done
+public function getProjectsWithCompletedServices(Request $request)
+{
+    try {
+        // $request->validate([
+        //     // You can add any necessary validation rules here
+        // ]);
+
+    $projectIds = Service ::where('service_done', true)
+        ->pluck('project_id')
+        ->unique()
+        ->toArray();
+
+    $projects = \App\Models\Project::with(['customer', 'onGrid', 'offGridHybrid'])
+        ->whereIn('id', $projectIds)
+        ->get()
+        ->map(function ($project) {
+            $project_no = null;
+
+            if ($project->type == 'ongrid' && $project->onGrid) {
+                $project_no = $project->onGrid->on_grid_project_id;
+            } elseif ($project->type == 'offgrid' && $project->offGridHybrid) {
+                $project_no = $project->offGridHybrid->off_grid_hybrid_project_id;
+            }
+
+            return [
+                'project_id' => $project->id,
+                'project_no' => $project_no,
+                'customer_name' => $project->customer->name ?? null,
+                'nearest_town' => $project->neatest_town ?? null,
+            ];
+        })
+
+        ->filter()
+        ->values(); // Reset keys after filtering
+        
+
+        return $this->success(['projects' => $projects]);
+    } catch (ValidationException $e) {
+        return $this->error('', 'Unauthorized access', 401);
+    } catch (Exception $e) {
+        return $this->error('', $e->getMessage(), 500);
+    }
+}
+
+//get all completed service rounds by project id
+public function getCompletedServiceRoundsByProjectId(Request $request)
+{
+    try {
+        $request->validate([
+            'project_id' => 'required|exists:projects,id',
+        ]);
+
+        $services = Service::where('project_id', $request->project_id)
+            ->where('service_done', true)
+            ->orderBy('service_date', 'asc')
+            ->get()
+            ->map(function ($service) {
+                return [
+                    'service_id' => $service->id,
+                    'service_round' => $service->service_round_no,
+                    'service_date' => $service->service_date,
+                    'service_time' => $service->service_time,
+                    'remarks' => $service->remarks,
+                    'service_type' => $service->service_type,
+                ];
+            });
+
+        return $this->success([
+            'project_id' => $request->project_id,
+            'services' => $services,
+        ]);
+    } catch (ValidationException $e) {
+        return $this->error('', $e->getMessage(), 401);
+    } catch (Exception $e) {
+        return $this->error('', $e->getMessage(), 500);
+    }
+}
 
     //get all services for allocated to relevent supervisor
     public function getSupervisorAllServices(Request $request)

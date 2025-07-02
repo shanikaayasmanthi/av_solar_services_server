@@ -35,3 +35,12 @@ Route::get('/project-location/{id}', [ProjectController::class, 'getLocation'])-
 
 //for get completed services summary
 Route::post('/sup/get_completed_services_by_project', [ServiceController::class, 'getCompletedServicesByProject'])->middleware('auth:sanctum');
+
+//get all scheduled services that are not yet completed
+Route::get('/services/scheduled', [ServiceController::class, 'getAllScheduledServices'])->middleware('auth:sanctum');
+
+// get all projects with atleast one completed services
+Route::get('/projects/completed', [ServiceController::class, 'getProjectsWithCompletedServices'])->middleware('auth:sanctum');
+
+// get service rounds of all projects with atleast one completed services by project id
+Route::get('/services/completed-by-project-id', [ServiceController::class, 'getCompletedServiceRoundsByProjectId']);
