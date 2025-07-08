@@ -74,6 +74,8 @@ class ProjectController extends Controller
         unset($project["location"]);
         unset($project["created_at"]);
         unset($project["updated_at"]);
+        
+
 
         // Solar Panels
         $solarPanels = $project->solarPanel->map(function ($panel) {
@@ -179,6 +181,37 @@ class ProjectController extends Controller
             'error' => 'Server error',
             'details' => config('app.debug') ? $e->getMessage() : null
         ], 500);
+    }
+}
+
+// Get project location and capacity(web)
+public function getProjectLocationAndCapacity(Request $request)
+{
+    try {
+        $request->validate([
+            'project_id' => "required|exists:projects,id"
+        ]);
+
+        $project = Project::select(
+            'longitude',
+            'lattitude',
+            'panel_capacity'
+        )->where("id", $request->project_id)->first();
+
+        if (!$project) {
+            return $this->error("", "Project not found", 404);
+        }
+
+        return $this->success([
+            "longitude" => $project->longitude,
+            "latitude" => $project->lattitude,
+            "system_capacity" => $project->panel_capacity
+        ]);
+
+    } catch (ValidationException $e) {
+        return $this->error([], "Validation error", 400);
+    } catch (Exception $e) {
+        return $this->error([], "Error occurred", 500);
     }
 }
 }

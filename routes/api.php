@@ -1,10 +1,15 @@
 <?php
+use App\Http\Controllers\DCController;
+use App\Http\Controllers\ACController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\RoofWorkController;
+use App\Http\Controllers\OutdoorWorkController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -44,3 +49,15 @@ Route::get('/projects/completed', [ServiceController::class, 'getProjectsWithCom
 
 // get service rounds of all projects with atleast one completed services by project id
 Route::get('/services/completed-by-project-id', [ServiceController::class, 'getCompletedServiceRoundsByProjectId']);
+
+//get service DC details by service-id
+Route::get('/dc/details-by-service-id', [DCController::class, 'getDCServiceDetailsByServiceId']);
+
+//get service AC details by service-id
+Route::get('/ac/details-by-service-id', [ACController::class, 'getACServiceDetailsByServiceId']);
+
+Route::post('/project/location-capacity', [ProjectController::class, 'getProjectLocationAndCapacity'])->middleware('auth:sanctum');
+
+Route::get('/roof-work/details', [RoofWorkController::class, 'getRoofWorkDetailsByServiceId'])->middleware('auth:sanctum');
+
+Route::get('/outdoor-work/details', [OutdoorWorkController::class, 'getOutdoorWorkDetails'])->middleware('auth:sanctum');

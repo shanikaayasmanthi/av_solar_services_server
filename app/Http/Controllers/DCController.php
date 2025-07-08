@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\DC;
+use App\Models\Project;
+use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class DCController extends Controller
 {
@@ -20,22 +23,22 @@ class DCController extends Controller
 
             $dcColumnData = [
                 'service_id' => $serviceId,
-                "OC_voltage_string_1" => $dcData->OCVoltage[0] ?? 0.0,
-                "OC_voltage_string_2" => $dcData->OCVoltage[1] ?? 0.0,
-                "OC_voltage_string_3" => $dcData->OCVoltage[2] ?? 0.0,
-                "OC_voltage_string_4" => $dcData->OCVoltage[3] ?? 0.0,
-                "OC_voltage_string_5" => $dcData->OCVoltage[4] ?? 0.0,
-                "OC_voltage_string_6" => $dcData->OCVoltage[5] ?? 0.0,
-                "OC_voltage_string_7" => $dcData->OCVoltage[6] ?? 0.0,
-                "OC_voltage_string_8" => $dcData->OCVoltage[7] ?? 0.0,
-                "load_voltage_string_1" => $dcData->LoadVoltage[0] ?? 0.0,
-                "load_voltage_string_2" => $dcData->LoadVoltage[1] ?? 0.0,
-                "load_voltage_string_3" => $dcData->LoadVoltage[2] ?? 0.0,
-                "load_voltage_string_4" => $dcData->LoadVoltage[3] ?? 0.0,
-                "load_voltage_string_5" => $dcData->LoadVoltage[4] ?? 0.0,
-                "load_voltage_string_6" => $dcData->LoadVoltage[5] ?? 0.0,
-                "load_voltage_string_7" => $dcData->LoadVoltage[6] ?? 0.0,
-                "load_voltage_string_8" => $dcData->LoadVoltage[7] ?? 0.0,
+                "OC_valtage_string_1" => $dcData->OCVoltage[0] ?? 0.0,
+                "OC_valtage_string_2" => $dcData->OCVoltage[1] ?? 0.0,
+                "OC_valtage_string_3" => $dcData->OCVoltage[2] ?? 0.0,
+                "OC_valtage_string_4" => $dcData->OCVoltage[3] ?? 0.0,
+                "OC_valtage_string_5" => $dcData->OCVoltage[4] ?? 0.0,
+                "OC_valtage_string_6" => $dcData->OCVoltage[5] ?? 0.0,
+                "OC_valtage_string_7" => $dcData->OCVoltage[6] ?? 0.0,
+                "OC_valtage_string_8" => $dcData->OCVoltage[7] ?? 0.0,
+                "load_valtage_string_1" => $dcData->LoadVoltage[0] ?? 0.0,
+                "load_valtage_string_2" => $dcData->LoadVoltage[1] ?? 0.0,
+                "load_valtage_string_3" => $dcData->LoadVoltage[2] ?? 0.0,
+                "load_valtage_string_4" => $dcData->LoadVoltage[3] ?? 0.0,
+                "load_valtage_string_5" => $dcData->LoadVoltage[4] ?? 0.0,
+                "load_valtage_string_6" => $dcData->LoadVoltage[5] ?? 0.0,
+                "load_valtage_string_7" => $dcData->LoadVoltage[6] ?? 0.0,
+                "load_valtage_string_8" => $dcData->LoadVoltage[7] ?? 0.0,
                 "load_current_string_1" => $dcData->LoadCurrent[0] ?? 0.0,
                 "load_current_string_2" => $dcData->LoadCurrent[1] ?? 0.0,
                 "load_current_string_3" => $dcData->LoadCurrent[2] ?? 0.0,
@@ -56,4 +59,26 @@ class DCController extends Controller
             throw $e;
         }
     }
+
+//Service DC details by serviceId  
+public function getDCServiceDetailsByServiceId(Request $request)
+{
+    $serviceId = $request->query('service_id');
+
+    if (!$serviceId) {
+        return response()->json(['message' => 'Service ID is required.'], 400);
+    }
+
+    $service = Service::where('id', $serviceId)
+                      ->with('dc')
+                      ->first();
+
+    if (!$service || !$service->dc) {
+        return response()->json(['message' => 'DC Service details not found.'], 404);
+    }
+
+    return response()->json($service->dc);
+}
+
+
 }

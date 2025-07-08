@@ -44,5 +44,24 @@ class ACController extends Controller
         } catch (\Exception $e) {
             throw $e;
         }
+    } 
+
+    // Get AC details by service_id
+public function getACServiceDetailsByServiceId(Request $request)
+{
+    $serviceId = $request->query('service_id');
+
+    if (!$serviceId) {
+        return response()->json(['message' => 'Service ID is required.'], 400);
     }
+
+    $acDetails = AC::where('service_id', $serviceId)->first();
+
+    if (!$acDetails) {
+        return response()->json(['message' => 'AC Service details not found.'], 404);
+    }
+
+    return response()->json($acDetails);
+}
+
 }
