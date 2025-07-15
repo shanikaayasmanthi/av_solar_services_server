@@ -62,6 +62,7 @@ public function getACServiceDetailsByServiceId(Request $request)
     }
 
     return response()->json($acDetails);
+
 }
 
 }

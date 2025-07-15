@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Models\Service;
+use App\Models\ServiceTechniciant;
 use App\Traits\HttpResponses;
 use Exception;
 use Illuminate\Http\Request;
@@ -25,10 +26,9 @@ class ServiceController extends Controller
 public function getAllScheduledServices(Request $request)
 {
     try {
-        // Validate the request (no specific parameters required for this endpoint, but adding a placeholder)
+        
         $request->validate([
-            // No specific validation needed for this endpoint as it fetches all scheduled services
-            // You can add optional filters if needed, e.g., 'supervisor_id' => 'exists:supervisors,user_id'
+            
         ]);
 
         $services = Service::with([
@@ -83,9 +83,7 @@ public function getAllScheduledServices(Request $request)
 public function getProjectsWithCompletedServices(Request $request)
 {
     try {
-        // $request->validate([
-        //     // You can add any necessary validation rules here
-        // ]);
+      
 
     $projectIds = Service ::where('service_done', true)
         ->pluck('project_id')
@@ -109,6 +107,7 @@ public function getProjectsWithCompletedServices(Request $request)
                 'project_no' => $project_no,
                 'customer_name' => $project->customer->name ?? null,
                 'nearest_town' => $project->neatest_town ?? null,
+                'project_name' => $project->project_name ?? null,
             ];
         })
 
@@ -139,11 +138,19 @@ public function getCompletedServiceRoundsByProjectId(Request $request)
             ->map(function ($service) {
                 return [
                     'service_id' => $service->id,
+                    'project_id' => $service->project_id,
+                    'project_no' => $service->project->type == 'ongrid' ? $service->project->onGrid->on_grid_project_id : 
+                                    ($service->project->type == 'offgrid' ? $service->project->offGridHybrid->off_grid_hybrid_project_id : null),
+                    'customer_name' => $service->project->customer->name ?? null,
+                    'nearest_town' => $service->project->neatest_town ?? null,        
                     'service_round' => $service->service_round_no,
                     'service_date' => $service->service_date,
                     'service_time' => $service->service_time,
                     'remarks' => $service->remarks,
                     'service_type' => $service->service_type,
+                    'supervisor_name' => $service->supervisor ? $service->supervisor->name : null,
+                    'power' => $service->power,
+                    'power_time' => $service->power_time,
                 ];
             });
 
@@ -402,6 +409,30 @@ public function saveServiceDetails(Request $request)
         DB::rollBack();  // rollback on any unexpected error
         return $this->error('', $e->getMessage(), 500);
     }
+} 
+ 
+public function getTechniciansByServiceId(Request $request)
+{
+    try {
+        $request->validate([
+            'service_id' => 'required|exists:services,id'
+        ]);
+
+        $technicians = ServiceTechniciant::where('service_id', $request->service_id)
+            ->pluck('techniciant_name');
+
+        return $this->success([
+            'service_id' => $request->service_id,
+            'technicians' => $technicians
+        ], 'Technicians fetched successfully');
+
+    } catch (ValidationException $e) {
+        return $this->error('', 'Invalid request', 422);
+    } catch (Exception $e) {
+        return $this->error('', $e->getMessage(), 500);
+    }
 }
+
+
 
 }

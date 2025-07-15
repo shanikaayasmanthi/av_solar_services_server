@@ -74,4 +74,122 @@ class MainPanelWorkController extends Controller
             throw $e;
         }
     }
+ public function getMainPanelWorkDetails(Request $request)
+{
+    try {
+        $request->validate([
+            'service_id' => 'required|integer|exists:services,id'
+        ]);
+
+        $mainPanelWork = MainPanelWork::where('service_id', $request->service_id)->first();
+
+        if (!$mainPanelWork) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Main panel work details not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'on_grid_voltage' => [
+                    'reading' => $mainPanelWork->on_grid_valtage,
+                    'comments' => $mainPanelWork->on_grid_valtage_comments
+                ],
+                'off_grid_voltage' => [
+                    'reading' => $mainPanelWork->off_grid_valtage,
+                    'comments' => $mainPanelWork->off_grid_valtage_comments
+                ],
+                'invertor_fan_time' => [
+                    'reading' => $mainPanelWork->invertor_service_fan_time,
+                    'comments' => $mainPanelWork->invertor_service_fan_time_comments
+                ],
+                'breaker_service' => [
+                    'checked' => (bool)$mainPanelWork->breaker_service,
+                    'comments' => $mainPanelWork->breaker_service_comments
+                ],
+                'dc_surge_arrestors' => [
+                    'status' => $mainPanelWork->DC_surge_arrestors,
+                    'comments' => $mainPanelWork->DC_surge_arrestors_comments
+                ],
+                'ac_surge_arrestors' => [
+                    'status' => $mainPanelWork->AC_surge_arrestors,
+                    'comments' => $mainPanelWork->AC_surge_arrestors_comments
+                ],
+                'invertor_mc4_condition' => [
+                    'status' => $mainPanelWork->invertor_connection_MC4_condition,
+                    'comments' => $mainPanelWork->invertor_connection_MC4_condition_comments
+                ],
+                'low_voltage_range' => [
+                    'value' => $mainPanelWork->low_valtage_range,
+                    'comments' => $mainPanelWork->low_valtage_range_comments
+                ],
+                'high_voltage_range' => [
+                    'value' => $mainPanelWork->high_valtage_range,
+                    'comments' => $mainPanelWork->high_valtage_range_comments
+                ],
+                'low_frequency_range' => [
+                    'value' => $mainPanelWork->low_freaquence_range,
+                    'comments' => $mainPanelWork->low_freaquence_range_comments
+                ],
+                'high_frequency_range' => [
+                    'value' => $mainPanelWork->high_freaquence_range,
+                    'comments' => $mainPanelWork->high_freaquence_range_comments
+                ],
+                'invertor_startup_time' => [
+                    'value' => $mainPanelWork->invertor_startup_time,
+                    'comments' => $mainPanelWork->invertor_startup_time_comments
+                ],
+                'e_today' => [
+                    'value' => $mainPanelWork->e_today_invertor,
+                    'comments' => $mainPanelWork->e_today_invertor_comments
+                ],
+                'e_total' => [
+                    'value' => $mainPanelWork->e_total_invertor,
+                    'comments' => $mainPanelWork->e_total_invertor_comments
+                ],
+                'power_bulb_blinking_style' => [
+                    'description' => $mainPanelWork->power_bulb_blinking_style,
+                    'comments' => $mainPanelWork->power_bulb_blinking_style_comments
+                ],
+                'alta_vision_sticker' => [
+                    'available' => (bool)$mainPanelWork->alta_vision_sticker,
+                    'comments' => $mainPanelWork->alta_vision_sticker_comments
+                ],
+                'wifi_config_done' => [
+                    'done' => (bool)$mainPanelWork->wifi_config_done,
+                    'comments' => $mainPanelWork->wifi_config_done_comments
+                ],
+                'router_credentials' => [
+                    'username' => $mainPanelWork->router_username,
+                    'username_comments' => $mainPanelWork->router_username_comments,
+                    'password' => $mainPanelWork->router_password,
+                    'password_comments' => $mainPanelWork->router_password_comments,
+                    'serial_number' => $mainPanelWork->router_serial_number,
+                    'serial_number_comments' => $mainPanelWork->router_serial_number_comments
+                ],
+                'took_photos' => [
+                    'status' => (bool)$mainPanelWork->took_photos,
+                    'comments' => $mainPanelWork->took_photos_comments
+                ],
+                'images' => $mainPanelWork->images
+            ]
+        ]);
+
+    } catch (ValidationException $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Validation error',
+            'errors' => $e->errors()
+        ], 400);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Server error',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
 }
