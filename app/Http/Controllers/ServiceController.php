@@ -445,5 +445,139 @@ public function getTechniciansByServiceId(Request $request)
 }
 
 
+//get forst and secons service done counts
+public function getServiceCounts(){
+    try{
+
+        $firstServiceCount = Service::where('service_round_no', 1)->count();
+        $secondServiceCount = Service::where('service_round_no', 2)->count();
+
+        return $this->success([
+            'first_service_count' => $firstServiceCount,
+            'second_service_count' => $secondServiceCount
+        ]);
+    }catch (ValidationException $e) {
+        return $this->error('', 'Validation Error', 422);
+    } catch (Exception $e) {
+        return $this->error('', 'Error occurred', 500);
+    }
+}
+
+public function getServicesSummery(Request $request){
+
+    try{
+        $request->validate([ 
+            'project_id'=>'required|exists:projects,id'
+        ]);
+        $services = Service::where('project_id', $request->project_id)
+            ->where('service_done', true)
+            ->get()
+            ->map(function ($service) {
+                return [
+                    'service_id' => $service->id,
+                    'service_round' => $service->service_round_no,
+                    'service_type' => $service->service_type,
+                    'service_date' => $service->service_date,
+                    'service_time' => $service->service_time,
+                    'remarks' => $service->remarks,
+                ];
+                });
+
+                return $this->success([
+                    'services' => $services
+                ]);
+                    
+    }catch (ValidationException $e) {
+        return $this->error('', 'Validation Error', 422);
+    } catch (Exception $e) {
+        return $this->error('', 'Error occurred', 500);
+    }
+}
+
+//get next service round for shecule service
+public function getNextServiceRound(Request $request){
+    try{
+
+        $request->validate([
+            'project_id' => 'required|exists:projects,id'
+        ]);
+
+        $lastService = Service::where('project_id', $request->project_id)
+            ->orderBy('service_date', 'desc')
+            ->first();
+        if (!$lastService) {
+            return $this->error('', 'No completed services found for this project', 404);
+        }
+        if($lastService->service_done == false){
+            return $this->error('', 'Already have a service to complete', 409);
+        }
+        $nextServiceRound = $lastService->service_round_no + 1;
+
+        return $this->success([
+            'next_service_round' => $nextServiceRound,
+        ]);
+
+    }catch (ValidationException $e) {
+        return $this->error('', 'Validation Error', 422);
+    } catch (Exception $e) {
+        return $this->error('', 'Error occurred', 500);
+    }
+}
+
+public function scheduleNextService(Request $request)
+{
+    try {
+        $request->validate([
+            'project_id' => 'required|exists:projects,id',
+            'service_round' => 'required|integer|min:1',
+            'service_date' => 'required|date_format:Y-m-d',
+            'supervisor_id'=>'required|exists:users,id',
+        ]);
+
+        $serviceExists = Service::where('project_id', $request->project_id)
+            ->where('service_round_no', $request->service_round)
+            ->exists();
+        if ($serviceExists) {
+            return $this->error('', 'Service for this round already exists', 409);
+        }
+
+        $lastService = Service::where('project_id', $request->project_id)
+        ->where('service_done', true)
+            ->orderBy('service_date', 'desc')
+            ->first();
+
+            if ($lastService ){
+                return $this->error('', 'Service have to complete', 409);
+            }
+
+
+        $carbonDate = Carbon::parse($request->service_date);
+        if($carbonDate == false) {
+            return $this->error('', 'Invalid date format', 422);
+        }
+        $service = new Service();
+        $service->project_id = $request->project_id;
+        $service->service_round_no = $request->service_round;
+        $service->service_date = $carbonDate->toDateTimeString();
+        $service->supervisor_id = $request->supervisor_id;
+        if($request->service_round == 1){
+            $service->service_type = 'free';
+        }else{
+            $service->service_type = 'paid';
+        }
+        $service->save();
+
+        return $this->success('','Service scheduled successfully');
+    } catch (ValidationException $e) {
+        return $this->error('', 'Validation Error', 422);
+    } catch (Exception $e) {
+        return $this->error('', 'Failed to schedule service', 500);
+    }
+}
+
+
+
+
+
 
 }

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('off_grid_hybrid_project_id');
             $table->string('wifi_username')->nullable();
             $table->string('wifi_passowrd')->nullable();
-            $table->string('connection_type');
+            $table->string('connection_type')->nullable();
             $table->string('remarks')->nullable();
             $table->timestamps();
         });

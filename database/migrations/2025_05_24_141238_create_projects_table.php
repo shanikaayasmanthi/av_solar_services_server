@@ -25,8 +25,8 @@ return new class extends Migration
             $table->integer('service_rounds_in_agreement');
             $table->dateTime('system_on')->nullable();
             $table->dateTime('project_installation_date')->nullable();
-            $table->double('longitude');
-            $table->double('lattitude');
+            $table->double('longitude')->nullable();
+            $table->double('lattitude')->nullable();
             $table->string('location')->nullable();
             $table->string('remarks')->nullable();
             $table->timestamps();

@@ -18,7 +18,7 @@ class Project extends Model
         'customer_id',
         'type',
         'project_name',
-        'nearest_town',
+        'neatest_town',
         'project_address',
         'no_of_panels',
         'panel_capacity',
