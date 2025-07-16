@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('project_id')->references('id')->on('projects')->onDelete('restrict');
             $table->bigInteger('on_grid_project_id');
-            $table->string('electricity_bill_name');
-            $table->string('wifi_username');
-            $table->string('wifi_password');
+            $table->string('electricity_bill_name')->nullable();
+            $table->string('wifi_username')->nullable();
+            $table->string('wifi_password')->nullable();
             $table->string('harmonic_meter')->nullable();
             $table->string('remarks')->nullable();
             $table->timestamps();
