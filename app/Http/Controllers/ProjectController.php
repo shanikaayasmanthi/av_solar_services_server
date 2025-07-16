@@ -277,6 +277,7 @@ class ProjectController extends Controller
             if (!empty($searchTerm)) {
                 $query->where('project_name', 'like', '%' . $searchTerm . '%');
             }
+            
 
             if($type==''){
                 $projects = $query->orderBy('created_at', 'desc')->paginate(6);
