@@ -104,6 +104,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
        try{
+        Log::info('logout called');
          $request->user()->tokens()->delete();
         return $this->success('','You were logged out successfully');
        }catch(Exception $e){
