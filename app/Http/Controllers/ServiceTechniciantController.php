@@ -22,11 +22,11 @@ class ServiceTechniciantController extends Controller
             }
         }
 
-        // If all inserts are done successfully:
+        
         return true;
 
     } catch (\Exception $e) {
-        throw $e;  // throw to parent
+        throw $e;  
     }
 }
 

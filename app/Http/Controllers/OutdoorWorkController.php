@@ -46,12 +46,14 @@ class OutdoorWorkController extends Controller
 
             $outdoorWork = OutdoorWork::where('service_id', $request->service_id)->first();
 
-            if (!$outdoorWork) {
+           if (!$outdoorWork) {
                 return response()->json([
-                    'status' => 'error',
-                    'message' => 'Outdoor work details not found'
-                ], 404);
+                    'status' => 'no_data',
+                    'message' => 'Outdoor work details not found',
+                    'data' => null
+                ], 200);
             }
+
 
             return response()->json([
                 'status' => 'success',

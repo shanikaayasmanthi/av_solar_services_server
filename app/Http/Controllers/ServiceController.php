@@ -31,45 +31,51 @@ public function getAllScheduledServices(Request $request)
             
         ]);
 
-        $services = Service::with([
-                'project.onGrid', 
-                'project.offGridHybrid', 
-                'project.customer.customerPhoneNo'
-            ])
-            ->where('service_done', false)
-            ->get()
-            ->map(function ($service) {
-                $project = $service->project;
-                if (!$project) {
-                    return null; // Skip if project is missing
-                }
+        $perPage = 8;
+    $paginated = Service::with([
+            'project.onGrid', 
+            'project.offGridHybrid', 
+            'project.customer.customerPhoneNo'
+        ])
+        ->where('service_done', false)
+        ->paginate($perPage);
 
-                
-                $project_no = null;
-                if ($project->type == 'ongrid') {
-                    $project_no = $project->onGrid->on_grid_project_id ?? null;
-                } else if ($project->type == 'offgrid') {
-                    $project_no = $project->offGridHybrid->off_grid_hybrid_project_id ?? null;
-                }
-                
-                // Get technician names as assigned supervisors
-                $supervisor_name = null;
-                if ($service->supervisor_id) {
-                    $supervisor = \App\Models\User::find($service->supervisor_id);
-                    $supervisor_name = $supervisor ? $supervisor->name : null;
-                }
+    $transformed = $paginated->getCollection()
+        ->map(function ($service) {
+            $project = $service->project;
+            if (!$project) return null;
 
-                $customer_name = $project->customer ? $project->customer->name : null;
+            $project_no = null;
+            if ($project->type == 'ongrid') {
+                $project_no = $project->onGrid->on_grid_project_id ?? null;
+            } else if ($project->type == 'offgrid') {
+                $project_no = $project->offGridHybrid->off_grid_hybrid_project_id ?? null;
+            }
 
-                return [
-                    'project_no' => $project_no,
-                    'customer_name' => $customer_name,
-                    'service_round' => $service->service_round_no ?? null,
-                    'service_date' => $service->service_date ?? null,
-                    'service_time' => $service->service_time ?? null,
-                    'supervisors' => $supervisor_name ? [$supervisor_name] : [], // Wrap in an array for consistency
-                ];
-            })->filter(); // Remove any null entries
+            $supervisor_name = null;
+            if ($service->supervisor_id) {
+                $supervisor = \App\Models\User::find($service->supervisor_id);
+                $supervisor_name = $supervisor ? $supervisor->name : null;
+            }
+
+            $customer_name = $project->customer ? $project->customer->name : null;
+
+            return [
+                'project_no' => $project_no,
+                'customer_name' => $customer_name,
+                'service_round' => $service->service_round_no ?? null,
+                'service_date' => $service->service_date ?? null,
+                'service_time' => $service->service_time ?? null,
+                'supervisors' => $supervisor_name ? [$supervisor_name] : [],
+            ];
+        })
+        ->filter()
+        ->values();
+
+    $paginated->setCollection($transformed);
+
+    return $this->success(['services' => $paginated]);
+
 
         return $this->success(['services' => $services]);
     } catch (ValidationException $e) {
@@ -90,37 +96,42 @@ public function getProjectsWithCompletedServices(Request $request)
         ->unique()
         ->toArray();
 
-    $projects = \App\Models\Project::with(['customer', 'onGrid', 'offGridHybrid'])
-        ->whereIn('id', $projectIds)
-        ->get()
-        ->map(function ($project) {
-            $project_no = null;
+  $paginatedProjects = \App\Models\Project::with(['customer', 'onGrid', 'offGridHybrid'])
+    ->whereIn('id', $projectIds)
+    ->paginate(8); 
 
-            if ($project->type == 'ongrid' && $project->onGrid) {
-                $project_no = $project->onGrid->on_grid_project_id;
-            } elseif ($project->type == 'offgrid' && $project->offGridHybrid) {
-                $project_no = $project->offGridHybrid->off_grid_hybrid_project_id;
-            }
+$projects = $paginatedProjects->getCollection()
+    ->map(function ($project) {
+        $project_no = null;
 
-            return [
-                'project_id' => $project->id,
-                'project_no' => $project_no,
-                'customer_name' => $project->customer->name ?? null,
-                'nearest_town' => $project->neatest_town ?? null,
-                'project_name' => $project->project_name ?? null,
-            ];
-        })
+        if ($project->type == 'ongrid' && $project->onGrid) {
+            $project_no = $project->onGrid->on_grid_project_id;
+        } elseif ($project->type == 'offgrid' && $project->offGridHybrid) {
+            $project_no = $project->offGridHybrid->off_grid_hybrid_project_id;
+        }
 
-        ->filter()
-        ->values(); // Reset keys after filtering
-        
+        return [
+            'project_id' => $project->id,
+            'project_no' => $project_no,
+            'customer_name' => $project->customer->name ?? null,
+            'nearest_town' => $project->neatest_town ?? null,
+            'project_name' => $project->project_name ?? null,
+        ];
+    })
+    ->filter()
+    ->values();
 
-        return $this->success(['projects' => $projects]);
-    } catch (ValidationException $e) {
-        return $this->error('', 'Unauthorized access', 401);
-    } catch (Exception $e) {
-        return $this->error('', $e->getMessage(), 500);
-    }
+// Replace the collection with the transformed one
+$paginatedProjects->setCollection($projects);
+
+return $this->success([
+    'projects' => $paginatedProjects
+]);
+} catch (ValidationException $e) {
+    return $this->error('', 'Unauthorized access', 401);
+} catch (Exception $e) {
+    return $this->error('', $e->getMessage(), 500);
+}
 }
 
 //get all completed service rounds by project id

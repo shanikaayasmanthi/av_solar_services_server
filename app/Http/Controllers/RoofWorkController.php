@@ -58,59 +58,60 @@ class RoofWorkController extends Controller
 
         $roofWork = RoofWork::where('service_id', $request->service_id)->first();
 
-        if (!$roofWork) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Roof work details not found for this service'
-            ], 404);
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'data' => [
-                'cloudness' => [
-                    'reading' => $roofWork->cloudness_reading,
-                    'comments' => $roofWork->cloudness_reading_comments
-                ],
-                'panel_service' => [
-                    'checked' => (bool)$roofWork->panel_service,
-                    'comments' => $roofWork->panel_service_comments
-                ],
-                'structure_service' => [
-                    'checked' => (bool)$roofWork->structure_service,
-                    'comments' => $roofWork->structure_service_comments
-                ],
-                'nut_bolt_condition' => [
-                    'checked' => (bool)$roofWork->nut_bolt_condition,
-                    'comments' => $roofWork->nut_bolt_condition_comments
-                ],
-                'shadow' => [
-                    'checked' => (bool)$roofWork->shadow,
-                    'comments' => $roofWork->shadow_comments
-                ],
-                'panel_MC4_condition' => [
-                    'checked' => (bool)$roofWork->panel_MC4_condition,
-                    'comments' => $roofWork->panel_MC4_condition_comments
-                ],
-                'took_photos' => [
-                    'checked' => (bool)$roofWork->took_photos,
-                    'comments' => $roofWork->took_photos_comments
-                ]
-            ]
-        ]);
-
-    } catch (ValidationException $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Validation error',
-            'errors' => $e->errors()
-        ], 400);
-    } catch (Exception $e) {
-        Log::error("Error fetching roof work details: " . $e->getMessage());
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Internal server error'
-        ], 500);
+      if (!$roofWork) {
+    return response()->json([
+        'status' => 'no_data',
+        'message' => 'Roof work details not found for this service',
+        'data' => null
+    ], 200); 
     }
+
+    return response()->json([
+        'status' => 'success',
+        'data' => [
+            'cloudness' => [
+                'reading' => $roofWork->cloudness_reading,
+                'comments' => $roofWork->cloudness_reading_comments
+            ],
+            'panel_service' => [
+                'checked' => (bool)$roofWork->panel_service,
+                'comments' => $roofWork->panel_service_comments
+            ],
+            'structure_service' => [
+                'checked' => (bool)$roofWork->structure_service,
+                'comments' => $roofWork->structure_service_comments
+            ],
+            'nut_bolt_condition' => [
+                'checked' => (bool)$roofWork->nut_bolt_condition,
+                'comments' => $roofWork->nut_bolt_condition_comments
+            ],
+            'shadow' => [
+                'checked' => (bool)$roofWork->shadow,
+                'comments' => $roofWork->shadow_comments
+            ],
+            'panel_MC4_condition' => [
+                'checked' => (bool)$roofWork->panel_MC4_condition,
+                'comments' => $roofWork->panel_MC4_condition_comments
+            ],
+            'took_photos' => [
+                'checked' => (bool)$roofWork->took_photos,
+                'comments' => $roofWork->took_photos_comments
+            ]
+        ]
+    ]);
+
+} catch (ValidationException $e) {
+    return response()->json([
+        'status' => 'error',
+        'message' => 'Validation error',
+        'errors' => $e->errors()
+    ], 400);
+} catch (Exception $e) {
+    Log::error("Error fetching roof work details: " . $e->getMessage());
+    return response()->json([
+        'status' => 'error',
+        'message' => 'Internal server error'
+    ], 500);
+}
 }
 }

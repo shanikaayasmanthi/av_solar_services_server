@@ -83,12 +83,14 @@ class MainPanelWorkController extends Controller
 
         $mainPanelWork = MainPanelWork::where('service_id', $request->service_id)->first();
 
-        if (!$mainPanelWork) {
+       if (!$mainPanelWork) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'Main panel work details not found'
-            ], 404);
+                'status' => 'no_data',
+                'message' => 'Main panel work details not found',
+                'data' => null
+            ], 200); 
         }
+
 
         return response()->json([
             'status' => 'success',
