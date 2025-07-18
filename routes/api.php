@@ -46,7 +46,7 @@ Route::get('/project-location/{id}', [ProjectController::class, 'getLocation'])-
 Route::post('/sup/get_completed_services_by_project', [ServiceController::class, 'getCompletedServicesByProject'])->middleware('auth:sanctum');
 
 //web apis
-Route::post('/addcustomers', [CustomerController::class, 'store'])->middleware('auth:sanctum');
+Route::post('/addcustomer', [CustomerController::class, 'store'])->middleware('auth:sanctum');
 Route::post('/openproject', [ProjectController::class, 'openProject'])->middleware('auth:sanctum');
 Route::get('/find-customer', [CustomerController::class, 'find'])->middleware('auth:sanctum');
 Route::get('/get-projects', [ProjectController::class, 'getAllProjects'])->middleware('auth:sanctum');
@@ -62,3 +62,4 @@ Route::get('/get-next-service-round',[ServiceController::class,'getNextServiceRo
 Route::get('/search-supervisors',[UserController::class,'searchSupervisors'])->middleware('auth:sanctum');
 Route::post('/schedule-next-service',[ServiceController::class,'scheduleNextService'])->middleware('auth:sanctum');
 Route::get('/search-customer',[UserController::class,'searchCustomer'])->middleware('auth:sanctum');
+Route::post('add-new-solar-panels',[SolarPanelController::class,'addNewSolarPanels'])->middleware('auth:sanctum');
