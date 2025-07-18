@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('type');
             $table->string('project_name');
             $table->string('project_address');
-            $table->string('neatest_town');
+            $table->string('nearest_town');
             $table->integer('no_of_panels');
             $table->double('panel_capacity');
             $table->integer('service_years_in_agreement');

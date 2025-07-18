@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\userType;
+use App\Models\UserType;
 use Illuminate\Http\Request;
 
 class UserTypeController extends Controller
@@ -10,10 +10,10 @@ class UserTypeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        //
-    }
+    // public function index()
+    // {
+    //     //
+    // }
 
     /**
      * Store a newly created resource in storage.
@@ -46,4 +46,14 @@ class UserTypeController extends Controller
     {
         //
     }
+
+    public function index(){
+
+    $types = UserType::all(['id', 'name']);
+    return response()->json([
+        'status' => 'success',
+        'data' => ['user_types' => $types]
+    ]);
+}
+
 }

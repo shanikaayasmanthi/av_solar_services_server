@@ -23,7 +23,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'user_type_id'
+        'user_type_id',
+        'is_active',
     ];
 
     /**
@@ -46,6 +47,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -64,6 +66,7 @@ class User extends Authenticatable
     {
         return $this->hasOne(Supervisor::class);
     }
+    
 
     public function customer()
     {
