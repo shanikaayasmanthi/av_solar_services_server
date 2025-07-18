@@ -12,6 +12,7 @@ use App\Http\Controllers\OutdoorWorkController;
 use App\Http\Controllers\MainPanelWorkController;
 use App\Http\Controllers\SolarPanelController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserTypeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -88,4 +89,7 @@ Route::get('/search-supervisors',[UserController::class,'searchSupervisors'])->m
 Route::post('/schedule-next-service',[ServiceController::class,'scheduleNextService'])->middleware('auth:sanctum');
 Route::get('/search-customer',[UserController::class,'searchCustomer'])->middleware('auth:sanctum');
 Route::get('/get-service-details-by-id',[ServiceController::class,'getServiceDetailsById'])->middleware('auth:sanctum');
-//Route::get('/get-service-rounds-by-project-id',[ServiceController::class,'getService
+Route::get('/users', [UserController::class, 'getAllUsersWithTypeAndStatus'])->middleware('auth:sanctum');
+Route::get('/user-types', [UserTypeController::class, 'index'])->middleware('auth:sanctum');
+Route::post('/users', [UserController::class, 'store']);
+
