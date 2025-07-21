@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\CustomerPhoneNo;
 use App\Models\User;
+use App\Models\Supervisor;
+use App\Models\Admin;
+use Illuminate\Support\Facades\Hash;
 use App\Traits\HttpResponses;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -84,4 +87,74 @@ public function searchCustomer(Request $request)
             return $this->error('Server Error', $e->getMessage(), 500);
         }
     }
+   
+    public function getAllUsersWithTypeAndStatus()
+{
+    try {
+        $users = User::with('userType') 
+            ->select('id', 'name', 'email', 'is_active', 'user_type_id')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id'         => $user->id,
+                    'name'       => $user->name,
+                    'email'      => $user->email,
+                    'is_active'  => (bool) $user->is_active,
+                    'user_type'  => $user->userType->name ?? 'Unknown',
+                ];
+            });
+
+        return $this->success([
+            'users' => $users
+        ]);
+    } catch (\Exception $e) {
+        return $this->error('Server Error', $e->getMessage(), 500);
+    }
+}
+
+public function store(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string',
+        'email' => 'required|email|unique:users',
+        'nic' => 'required|string|',
+        'phone' => 'required|string',
+        'user_type_id' => 'required|integer|exists:user_types,id',
+    ]);
+
+    // Create user
+    $user = User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'password' => Hash::make('user123'), // default or generated password
+        'user_type_id' => $request->user_type_id,
+        'is_active' => true,
+    ]);
+
+    // Save extra info based on role
+    if ($request->user_type_id == 2) { // Supervisor
+        Supervisor::create([
+            'user_id' => $user->id,
+            'name' => $request->name,
+            'nic' => $request->nic,
+            'phone' => $request->phone,
+        ]);
+    } elseif (in_array($request->user_type_id, [1, 4])) { // Admin or Super Admin
+        Admin::create([
+            'user_id' => $user->id,
+            'name' => $request->name,
+            'nic' => $request->nic,
+            'phone' => $request->phone,
+        ]);
+    }
+
+    return response()->json([
+        'message' => 'User created successfully',
+        'user' => $user,
+    ]);
+}
+
+
+
+  
 }

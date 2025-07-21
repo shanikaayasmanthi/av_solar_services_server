@@ -40,7 +40,7 @@ class Project extends Model
 
      public function solarPanel()
      {
-      return $this->hasMany(SolarPanel::class);
+      return $this->hasMany(SolarPanel::class)->where('is_current', true);
      }
 
      public function onGrid()

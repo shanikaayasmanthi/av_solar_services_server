@@ -20,6 +20,7 @@ class SolarPanel extends Model
         'panel_model_code',
         'wattage_of_pannel',
         'no_of_panels',
+        'is_current'
     ];
 
     public function project()

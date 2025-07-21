@@ -65,6 +65,12 @@ class Service extends Model
      public function serviceTechniciant(){
       return $this->hasMany(ServiceTechniciant::class);
      }
+
+       public function supervisor()
+       {
+         return $this->belongsTo(Supervisor::class, 'supervisor_id', 'user_id');
+       }
+       
 }
 
 
