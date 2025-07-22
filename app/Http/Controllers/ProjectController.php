@@ -83,7 +83,9 @@ class ProjectController extends Controller
             unset($project["updated_at"]);
 
             // Solar Panels
-            $solarPanels = $project->solarPanel->map(function ($panel) {
+            $solarPanels = $project->solarPanel->filter(function ($panel) {
+                return $panel && $panel->is_current;
+            })->map(function ($panel) {
                 return [
                     "solar_panel_model" => $panel->solar_panel_model,
                     "solar_panel_type" => $panel->panel_type,
@@ -274,13 +276,29 @@ class ProjectController extends Controller
             $searchTerm =  $request->input('query', '');
 
 
+            // if (!empty($searchTerm)) {
+            //     $query->where('project_name', 'like', '%' . $searchTerm . '%');
+            // }
             if (!empty($searchTerm)) {
-                $query->where('project_name', 'like', '%' . $searchTerm . '%');
+                $query->where(function ($q) use ($searchTerm) {
+                    // Search in project_name and project_address on the projects table
+                    $q->where('project_name', 'like', '%' . $searchTerm . '%')
+                      ->orWhere('project_address', 'like', '%' . $searchTerm . '%');
+
+                    // Search project_no in the related onGrid table
+                    $q->orWhereHas('onGrid', function ($onGridQuery) use ($searchTerm) {
+                        $onGridQuery->where('on_grid_project_id', 'like', '%' . $searchTerm . '%');
+                    });
+
+                    // Search project_no in the related offGridHybrid table
+                    $q->orWhereHas('offGridHybrid', function ($offGridQuery) use ($searchTerm) {
+                        $offGridQuery->where('off_grid_hybrid_project_id', 'like', '%' . $searchTerm . '%');
+                    });
+                });
             }
-            
 
             if($type==''){
-                $projects = $query->orderBy('created_at', 'desc')->paginate(6);
+                $projects = $query->orderBy('created_at', 'asc')->paginate(6);
 
                 
             }else{

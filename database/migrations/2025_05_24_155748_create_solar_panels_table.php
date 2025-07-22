@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('panel_model_code'); 
             $table->string('wattage_of_pannel'); 
             $table->string('no_of_panels'); 
+            $table->boolean('is_current')->default(true); 
             $table->timestamps();
         });
     }

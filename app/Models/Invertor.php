@@ -20,7 +20,8 @@ class Invertor extends Model
         'invertor_check_code',
         'invertor_serial_no',
         'brand',
-        'invertor_capacity'
+        'invertor_capacity',
+        'is_current'
      ];
 
      public function project()

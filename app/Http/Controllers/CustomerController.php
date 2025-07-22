@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Customer;
+use App\Models\CustomerPhoneNo;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -16,7 +17,8 @@ class CustomerController extends Controller
             'name' => 'required|string',
             'email' => 'required|email|unique:users',
             'address' => 'required|string',
-            'phone' => 'required|string',
+            'phone_numbers' => 'required|array|min:1',
+            'phone_numbers.*' => 'required|string|distinct|min:5|max:20'
         ]);
 
         DB::beginTransaction();
@@ -34,9 +36,27 @@ class CustomerController extends Controller
                 'user_id' => $user->id,
                 'name' => $request->name,
                 'address' => $request->address,
-                'phone' => $request->phone
+                // 'phone' => $request->phone
             ]);
 
+            if(!$customer){
+                throw new \Exception('Customer creation failed');
+            }
+
+            // 3. Create phone numbers
+            $phoneNumbersToInsert = [];
+            foreach ($request->phone_numbers as $phoneNumber) {
+                // You might want to sanitize/format phone numbers here
+                $phoneNumbersToInsert[] = [
+                    'customer_id' => $customer->id,
+                    'phone_no' => $phoneNumber,
+                    'created_at' => now(), 
+                    'updated_at' => now(), 
+                ];
+            }
+            if (!empty($phoneNumbersToInsert)) {
+                CustomerPhoneNo::insert($phoneNumbersToInsert);
+            }
             DB::commit();
 
             return response()->json([
