@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('battery_model');
             $table->string('battery_capacity');
             $table->string('battery_serial_no');
+            $table->boolean('is_current')->default(true);
             $table->timestamps();
         });
     }

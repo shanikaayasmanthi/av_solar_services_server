@@ -18,7 +18,8 @@ class Battery extends Model
         'battery_brand',
         'battery_model',
         'battery_capacity',
-        'battery_serial_no'
+        'battery_serial_no',
+        'is_current'
     ];
 
     public function offGridHybrid()

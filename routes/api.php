@@ -85,6 +85,7 @@ Route::get('/get-services-summary',[ServiceController::class,'getServicesSummery
 Route::get('/get-inverters',[InvertorController::class,'getInvertors'])->middleware('auth:sanctum');
 Route::post('change-inverters',[InvertorController::class,'changeInverters'])->middleware('auth:sanctum');
 Route::get('/get-batteries',[BatteryController::class,'getBatteries'])->middleware('auth:sanctum');
+Route::post('/change-batteries',[BatteryController::class,'changeBatteries'])->middleware('auth:sanctum');
 Route::get('/get-next-service-round',[ServiceController::class,'getNextServiceRound'])->middleware('auth:sanctum');
 Route::get('/search-supervisors',[UserController::class,'searchSupervisors'])->middleware('auth:sanctum');
 Route::post('/schedule-next-service',[ServiceController::class,'scheduleNextService'])->middleware('auth:sanctum');
