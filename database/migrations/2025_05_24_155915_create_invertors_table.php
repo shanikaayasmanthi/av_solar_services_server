@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('invertor_serial_no');
             $table->string('brand');
             $table->string('invertor_capacity');
+            $table->boolean('is_current')->default(true);
             $table->timestamps();
         });
     }
