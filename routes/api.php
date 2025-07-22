@@ -62,7 +62,7 @@ Route::get('/dc/details-by-service-id', [DCController::class, 'getDCServiceDetai
 //get service AC details by service-id
 Route::get('/ac/details-by-service-id', [ACController::class, 'getACServiceDetailsByServiceId'])->middleware('auth:sanctum');
 
-Route::post('/project/location-capacity', [ProjectController::class, 'getProjectLocationAndCapacity'])->middleware('auth:sanctum');
+Route::get('/project/location-capacity', [ProjectController::class, 'getProjectLocationAndCapacity'])->middleware('auth:sanctum');
 
 Route::get('/roof-work/details', [RoofWorkController::class, 'getRoofWorkDetailsByServiceId'])->middleware('auth:sanctum');
 

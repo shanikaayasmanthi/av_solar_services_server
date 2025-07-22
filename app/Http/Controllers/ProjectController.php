@@ -425,11 +425,11 @@ public function getProjectLocationAndCapacity(Request $request)
     }
 }
 
-    // Get project location and capacity
-    public function getProjectLocationAndCapacityApi(Request $request)
-    {
-        try {
-            $request->validate([
+// Get project location and capacity
+public function getProjectLocationAndCapacityApi(Request $request)
+{
+    try {
+        $request->validate([
                 'project_id' => "required|exists:projects,id"
             ]);
 
