@@ -86,4 +86,7 @@ class BatteryController extends Controller
             return $this->error('Server Error', $e->getMessage(), 500);
         }
     }
+
+
+    
 }

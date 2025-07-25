@@ -476,7 +476,7 @@ public function getProjectLocationAndCapacityApi(Request $request)
 
 
     
- // Get uninstalled projects 
+ // Get non-installed projects 
  
 public function getUninstalledProjects(Request $request)
 {
@@ -486,7 +486,6 @@ public function getUninstalledProjects(Request $request)
             'project_id' => 'nullable|exists:projects,id'
         ]);
 
-        
         $query = Project::query()
             ->with(['customer', 'onGrid', 'offGridHybrid'])
             ->where('isInstalled', false);
@@ -495,20 +494,22 @@ public function getUninstalledProjects(Request $request)
             $query->where('id', $request->project_id);
         }
 
-    
         $projects = $query->get()->map(function ($project) {
             try {
-                $projectNo = $project->type === 'ongrid' 
-                    ? ($project->onGrid->on_grid_project_id ?? 'N/A')
-                    : ($project->offGridHybrid->off_grid_hybrid_project_id ?? 'N/A');
+                $offGridId = $project->offGridHybrid->off_grid_hybrid_project_id ?? null;
+                $onGridId = $project->onGrid->on_grid_project_id ?? null;
 
                 return [
                     'project_id' => $project->id,
-                    'project_no' => $projectNo,
+                    'on_grid_project_id' => $onGridId,
+                    'off_grid_hybrid_project_id' => $offGridId,
+                    'project_no' => $project->type === 'offgrid' ? $offGridId : $onGridId, // ← This is the added line
                     'project_name' => $project->project_name,
                     'customer_name' => $project->customer->name ?? 'Unknown',
                     'nearest_town' => $project->neatest_town,
                     'type' => $project->type,
+                    'capacity' => $project->panel_capacity,
+                    'total_panels' => $project->no_of_panels
                 ];
             } catch (\Exception $e) {
                 \Log::error("Error processing project {$project->id}: " . $e->getMessage());
@@ -519,24 +520,19 @@ public function getUninstalledProjects(Request $request)
         return response()->json([
             'status' => 'success',
             'data' => [
-                'projects' => $projects->values() 
+                'projects' => $projects->values()
             ]
         ]);
-
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        return response()->json([
-            'status' => 'validation_error',
-            'message' => $e->validator->errors()->first(),
-            'data' => ''
-        ], 422);
 
     } catch (\Exception $e) {
         \Log::error('API Error: ' . $e->getMessage());
         return response()->json([
             'status' => 'error',
-            'message' => $e->getMessage(), 
+            'message' => $e->getMessage(),
             'data' => ''
         ], 500);
     }
 }
+
+
 }

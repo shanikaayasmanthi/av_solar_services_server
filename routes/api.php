@@ -102,4 +102,5 @@ Route::get('/projects/uninstalled', [ProjectController::class, 'getUninstalledPr
 Route::get('/customers/non-installed', [CustomerController::class, 'getCustomersForNonInstalledProjects'])->middleware('auth:sanctum');
 Route::post('/projects/ongrid', [OnGridController::class, 'store']);
 Route::post('/projects/offgrid', [OffGridHybridController::class, 'store']);
-
+Route::post('/change-batteries',[BatteryController::class,'changeBatteries'])->middleware('auth:sanctum');
+Route::post('/save-batteries', [BatteryController::class, 'storeBatteries'])->middleware('auth:sanctum');
