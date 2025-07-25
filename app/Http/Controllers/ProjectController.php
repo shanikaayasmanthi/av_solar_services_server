@@ -473,4 +473,70 @@ public function getProjectLocationAndCapacityApi(Request $request)
             return $this->error([], "Error occurred", 500);
         }
     }
+
+
+    
+ // Get uninstalled projects 
+ 
+public function getUninstalledProjects(Request $request)
+{
+    try {
+        // Validate request
+        $validated = $request->validate([
+            'project_id' => 'nullable|exists:projects,id'
+        ]);
+
+        
+        $query = Project::query()
+            ->with(['customer', 'onGrid', 'offGridHybrid'])
+            ->where('isInstalled', false);
+
+        if ($request->has('project_id')) {
+            $query->where('id', $request->project_id);
+        }
+
+    
+        $projects = $query->get()->map(function ($project) {
+            try {
+                $projectNo = $project->type === 'ongrid' 
+                    ? ($project->onGrid->on_grid_project_id ?? 'N/A')
+                    : ($project->offGridHybrid->off_grid_hybrid_project_id ?? 'N/A');
+
+                return [
+                    'project_id' => $project->id,
+                    'project_no' => $projectNo,
+                    'project_name' => $project->project_name,
+                    'customer_name' => $project->customer->name ?? 'Unknown',
+                    'nearest_town' => $project->neatest_town,
+                    'type' => $project->type,
+                ];
+            } catch (\Exception $e) {
+                \Log::error("Error processing project {$project->id}: " . $e->getMessage());
+                return null;
+            }
+        })->filter(); 
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'projects' => $projects->values() 
+            ]
+        ]);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'status' => 'validation_error',
+            'message' => $e->validator->errors()->first(),
+            'data' => ''
+        ], 422);
+
+    } catch (\Exception $e) {
+        \Log::error('API Error: ' . $e->getMessage());
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(), 
+            'data' => ''
+        ], 500);
+    }
+}
 }

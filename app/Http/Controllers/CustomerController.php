@@ -161,5 +161,69 @@ class CustomerController extends Controller
     }
 }
 
+ //Get customer details for non-installed projects
+
+public function getCustomersForNonInstalledProjects(Request $request)
+{
+    try {
+       
+        $request->validate([
+            'project_id' => 'nullable|exists:projects,id',
+            'customer_id' => 'nullable|exists:customers,user_id'
+        ]);
+
+        
+        $query = Project::with([
+                'customer.user', 
+                'customer.customerPhoneNo'
+            ])
+            ->where('isInstalled', false);
+
+        
+        if ($request->has('project_id')) {
+            $query->where('id', $request->project_id);
+        }
+
+        if ($request->has('customer_id')) {
+            $query->where('customer_id', $request->customer_id);
+        }
+
+    
+        $projects = $query->get();
+
+        if ($projects->isEmpty()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'No non-installed projects found',
+                'customers' => []
+            ]);
+        }
+
+        
+        $customers = $projects->map(function ($project) {
+            return [
+                'project_id' => $project->id,
+                'project_name' => $project->project_name,
+                'customer_id' => $project->customer_id,
+                'customer_name' => $project->customer->name ?? $project->customer->user->name,
+                'email' => $project->customer->user->email,
+                'address' => $project->customer->address,
+                'telephone_numbers' => $project->customer->customerPhoneNo->pluck('phone_no')->toArray()
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'customers' => $customers
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Failed to retrieve customer details',
+            'error' => $e->getMessage()
+        ], 500);
+    }
 }
-//das
+
+}

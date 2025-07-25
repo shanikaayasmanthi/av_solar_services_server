@@ -15,6 +15,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserTypeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\OnGridController;
+use App\Http\Controllers\OffGridHybridController;
 
 
 Route::get('/user', function (Request $request) {
@@ -96,4 +98,8 @@ Route::get('/get-service-details-by-id',[ServiceController::class,'getServiceDet
 Route::get('/users', [UserController::class, 'getAllUsersWithTypeAndStatus'])->middleware('auth:sanctum');
 Route::get('/user-types', [UserTypeController::class, 'index'])->middleware('auth:sanctum');
 Route::post('/users', [UserController::class, 'store']);
+Route::get('/projects/uninstalled', [ProjectController::class, 'getUninstalledProjects'])->middleware('auth:sanctum');
+Route::get('/customers/non-installed', [CustomerController::class, 'getCustomersForNonInstalledProjects'])->middleware('auth:sanctum');
+Route::post('/projects/ongrid', [OnGridController::class, 'store']);
+Route::post('/projects/offgrid', [OffGridHybridController::class, 'store']);
 

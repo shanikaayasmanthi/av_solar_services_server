@@ -29,6 +29,7 @@ class Project extends Model
         'longitude',
         'lattitude',
         'location',
+        'isInstalled',
         'remarks',
         
      ];
