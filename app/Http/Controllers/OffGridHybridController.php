@@ -10,8 +10,10 @@ class OffGridHybridController extends Controller
 {
     $validated = $request->validate([
         'project_id' => 'required|exists:projects,id',
-        'off_grid_hybrid_project_id' => 'required|string', // Changed to required
+        'off_grid_hybrid_project_id' => 'required|string', 
         'connection_type' => 'required|string|max:50',
+        'wifi_username' => 'nullable|string|max:255',
+        'wifi_passowrd' => 'nullable|string|max:255',
         'remarks' => 'nullable|string'
     ]);
 

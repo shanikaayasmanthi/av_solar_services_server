@@ -476,12 +476,12 @@ public function getProjectLocationAndCapacityApi(Request $request)
 
 
     
- // Get non-installed projects 
- 
-public function getUninstalledProjects(Request $request)
+// Get non-installed projects
+
+public function getNonInstalledProjects(Request $request)
 {
     try {
-        // Validate request
+        
         $validated = $request->validate([
             'project_id' => 'nullable|exists:projects,id'
         ]);
@@ -534,5 +534,85 @@ public function getUninstalledProjects(Request $request)
     }
 }
 
+public function updateInstallationDetails(Request $request, $project_id)
+{
+    try {
+        $validated = $request->validate([
+            'longitude' => 'nullable|numeric',
+            'latitude' => 'nullable|numeric',
+            'installation_date' => 'nullable|date',
+            'system_on_date' => 'nullable|date',
+            'remarks' => 'nullable|string',
+            'is_installed' => 'nullable|boolean',
+        ]);
+
+        $project = Project::findOrFail($project_id);
+
+        $updateData = [
+            'longitude' => $validated['longitude'] ?? $project->longitude,
+            'lattitude' => $validated['latitude'] ?? $project->lattitude,
+            'project_installation_date' => $validated['installation_date'] ?? $project->project_installation_date,
+            'system_on' => $validated['system_on_date'] ?? $project->system_on,
+            'remarks' => $validated['remarks'] ?? $project->remarks,
+            'isInstalled' => $validated['is_installed'] ?? $project->isInstalled,
+        ];
+
+        $project->update($updateData);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Installation details updated successfully',
+            'data' => $project
+        ]);
+
+    } catch (ValidationException $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Validation error',
+            'errors' => $e->errors()
+        ], 422);
+    } catch (Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Server error',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
+public function getPendingInstallationDetails($project_id)
+{
+    try {
+       
+        $project = Project::where('id', $project_id)
+                        ->where('isInstalled', false)
+                        ->firstOrFail();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'longitude' => $project->longitude,
+                'latitude' => $project->lattitude, 
+                'installation_date' => $project->project_installation_date,
+                'system_on_date' => $project->system_on,
+                'remarks' => $project->remarks,
+                'is_installed' => $project->isInstalled,
+
+            ]
+        ]);
+
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Project not found or already installed'
+        ], 404);
+    } catch (\Exception $e) {
+        \Log::error("Failed to fetch installation details: " . $e->getMessage());
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Failed to fetch installation details'
+        ], 500);
+    }
+}
 
 }

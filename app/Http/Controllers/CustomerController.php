@@ -224,6 +224,73 @@ public function getCustomersForNonInstalledProjects(Request $request)
             'error' => $e->getMessage()
         ], 500);
     }
+} public function updateCustomerDetails(Request $request)
+{
+    $request->validate([
+        'project_id' => 'required|exists:projects,id',
+        'name' => 'required|string|max:255',
+        'email' => 'required|email',
+        'address' => 'required|string',
+        'phone_numbers' => 'required|array|min:1',
+        'phone_numbers.*' => 'required|string|min:5|max:20'
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+    
+        $project = Project::with('customer.user', 'customer.customerPhoneNo')
+                        ->where('isInstalled', false)
+                        ->findOrFail($request->project_id);
+
+        
+        $project->customer->user->update([
+            'name' => $request->name,
+            'email' => $request->email
+        ]);
+
+        
+        $project->customer->update([
+            'name' => $request->name,
+            'address' => $request->address
+        ]);
+
+        // Update phone numbers - delete old and create new
+        $project->customer->customerPhoneNo()->delete();
+        
+        $phoneNumbers = [];
+        foreach ($request->phone_numbers as $phone) {
+            $phoneNumbers[] = [
+                'customer_id' => $project->customer_id,
+                'phone_no' => $phone,
+                'created_at' => now(),
+                'updated_at' => now()
+            ];
+        }
+        CustomerPhoneNo::insert($phoneNumbers);
+
+        DB::commit();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Customer details updated successfully',
+            'customer' => [
+                'project_id' => $project->id,
+                'customer_name' => $request->name,
+                'email' => $request->email,
+                'address' => $request->address,
+                'telephone_numbers' => $request->phone_numbers
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Failed to update customer details',
+            'error' => $e->getMessage()
+        ], 500);
+    }
 }
 
 }

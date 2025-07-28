@@ -98,9 +98,13 @@ Route::get('/get-service-details-by-id',[ServiceController::class,'getServiceDet
 Route::get('/users', [UserController::class, 'getAllUsersWithTypeAndStatus'])->middleware('auth:sanctum');
 Route::get('/user-types', [UserTypeController::class, 'index'])->middleware('auth:sanctum');
 Route::post('/users', [UserController::class, 'store']);
-Route::get('/projects/uninstalled', [ProjectController::class, 'getUninstalledProjects'])->middleware('auth:sanctum');
+Route::get('/projects/non-installed', [ProjectController::class, 'getNonInstalledProjects'])->middleware('auth:sanctum');
 Route::get('/customers/non-installed', [CustomerController::class, 'getCustomersForNonInstalledProjects'])->middleware('auth:sanctum');
 Route::post('/projects/ongrid', [OnGridController::class, 'store']);
 Route::post('/projects/offgrid', [OffGridHybridController::class, 'store']);
 Route::post('/change-batteries',[BatteryController::class,'changeBatteries'])->middleware('auth:sanctum');
 Route::post('/save-batteries', [BatteryController::class, 'storeBatteries'])->middleware('auth:sanctum');
+Route::put('/projects/{project_id}/installation', [ProjectController::class, 'updateInstallationDetails'])->middleware('auth:sanctum');
+Route::get('/projects/{project_id}/pending-installation', [ProjectController::class, 'getPendingInstallationDetails'])->middleware('auth:sanctum');
+Route::post('/add-batteries', [BatteryController::class, 'addBatteries'])->middleware('auth:sanctum');
+Route::put('/customers/update-details', [CustomerController::class, 'updateCustomerDetails'])->middleware('auth:sanctum');

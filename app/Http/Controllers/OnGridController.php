@@ -12,8 +12,8 @@ class OnGridController extends Controller
             'project_id' => 'required|exists:projects,id',
             'on_grid_project_id' => 'nullable|string',
             'electricity_bill_name' => 'required|string|max:255',
-            //'wifi_username' => 'nullable|string|max:255',
-            //'wifi_password' => 'nullable|string|max:255',
+            'wifi_username' => 'nullable|string|max:255',
+             'wifi_password' => 'nullable|string|max:255',
             'harmonic_meter' => 'required|string|max:255',
             'remarks' => 'nullable|string'
         ]);
