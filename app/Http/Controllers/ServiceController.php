@@ -593,4 +593,333 @@ class ServiceController extends Controller
             return $this->error('', 'Failed to schedule service', 500);
         }
     }
+
+public function getTodayServiceSummary(Request $request)
+{
+
+    try {
+        $request->validate([
+            'supervisor_id' => 'required|exists:supervisors,user_id'
+        ]);
+
+        $today = Carbon::today()->toDateString();
+
+        // Get all services done today by this supervisor with project and invertor data
+        $services = Service::with(['project.invertor'])
+            ->where('supervisor_id', $request->supervisor_id)
+            ->where('service_done', true)
+            ->whereDate('service_date', $today)
+            ->get();
+
+        // Debug: Log all service types for inspection
+        \Log::info('Service Types:', $services->pluck('service_type')->toArray());
+
+        // Calculate summary values with strict type checking
+        $totalServices = $services->count();
+        
+        $freeServices = $services->filter(function ($service) {
+            return !empty($service->service_type) && 
+                   strtolower(trim($service->service_type)) === 'free';
+        })->count();
+        
+        $paidServices = $services->filter(function ($service) {
+            return !empty($service->service_type) && 
+                   strtolower(trim($service->service_type)) === 'paid';
+        })->count();
+        
+        // Verify counts match expected total
+        if (($freeServices + $paidServices) != $totalServices) {
+            \Log::warning('Service type mismatch', [
+                'total' => $totalServices,
+                'free' => $freeServices,
+                'paid' => $paidServices,
+                'unclassified' => $totalServices - ($freeServices + $paidServices)
+            ]);
+        }
+
+        // Calculate total capacity
+        $totalCapacity = $services->sum(function ($service) {
+            $project = $service->project;
+            
+            if ($project->no_of_panels && $project->panel_capacity) {
+                return $project->panel_capacity * $project->no_of_panels;
+            }
+            
+            if ($project->invertor->isNotEmpty()) {
+                return $project->invertor->sum('invertor_capacity');
+            }
+            
+            return 0;
+        });
+
+        return $this->success([
+            'total_services' => $totalServices,
+            'free_services' => $freeServices,
+            'paid_services' => $paidServices,
+            'total_capacity' => $totalCapacity . 'kw',
+            'unclassified_services' => $totalServices - ($freeServices + $paidServices) // For debugging
+        ], "Today's service summary fetched successfully");
+
+    } catch (ValidationException $e) {
+        return $this->error('', $e->getMessage(), 422);
+    } catch (Exception $e) {
+        return $this->error('', $e->getMessage(), 500);
+    }
+}
+
+
+ // Get today's completed services for a supervisor with edit access
+ 
+public function getTodayCompletedServices(Request $request)
+{
+    try {
+        $request->validate([
+            'supervisor_id' => 'required|exists:supervisors,user_id'
+        ]);
+
+        $today = Carbon::today()->toDateString();
+
+        $services = Service::with([
+                'project.onGrid',
+                'project.offGridHybrid',
+                'project.invertor'
+            ])
+            ->where('supervisor_id', $request->supervisor_id)
+            ->where('service_done', true)
+            ->whereDate('service_date', $today)
+            ->get()
+            ->map(function ($service) {
+                $project = $service->project;
+                
+                // Get project number based on type
+                $projectNo = null;
+                if ($project->type == 'ongrid' && $project->onGrid) {
+                    $projectNo = $project->onGrid->on_grid_project_id;
+                } elseif ($project->type == 'offgrid' && $project->offGridHybrid) {
+                    $projectNo = $project->offGridHybrid->off_grid_hybrid_project_id;
+                }
+
+                // Calculate capacity
+                $capacity = 0;
+                if ($project->no_of_panels && $project->panel_capacity) {
+                    $capacity = $project->panel_capacity * $project->no_of_panels;
+                } elseif ($project->invertor->isNotEmpty()) {
+                    $capacity = $project->invertor->sum('invertor_capacity');
+                }
+
+                return [
+                    'service_id' => $service->id,
+                    'service_no' => $service->service_round_no,
+                    'project_id' => $project->id,
+                    'project_no' => $projectNo,
+                    'project_name' => $project->project_name,
+                    'service_type' => $service->service_type,
+                    'capacity' => $capacity . 'kw',
+                    'service_date' => $service->service_date,
+                    'service_time' => $service->service_time
+                ];
+            });
+
+        return $this->success([
+            'services' => $services
+        ], "Today's completed services fetched successfully");
+
+    } catch (ValidationException $e) {
+        return $this->error('', $e->getMessage(), 422);
+    } catch (Exception $e) {
+        return $this->error('', $e->getMessage(), 500);
+    }
+}
+
+// In ServiceController.php
+
+public function getServiceDetailsForEdit(Request $request)
+{
+    try {
+        $request->validate([
+            'service_id' => 'required|exists:services,id'
+        ]);
+
+        $service = Service::with([
+            'project.onGrid',
+            'project.offGridHybrid',
+            'project.customer',
+            'project.invertor',
+            'outdoorWork',
+            'roofWork',
+            'mainPanelWork',
+            'dc',
+            'ac',
+            'serviceTechniciant' 
+        ])->findOrFail($request->service_id);
+
+        // Get project number based on type
+        $projectNo = null;
+        if ($service->project->type == 'ongrid' && $service->project->onGrid) {
+            $projectNo = $service->project->onGrid->on_grid_project_id;
+        } elseif ($service->project->type == 'offgrid' && $service->project->offGridHybrid) {
+            $projectNo = $service->project->offGridHybrid->off_grid_hybrid_project_id;
+        }
+
+        $response = [
+            'service_id' => $service->id,
+            'service_round_no' => $service->service_round_no,
+            'service_type' => $service->service_type,
+            'service_date' => $service->service_date,
+            'service_time' => $service->service_time,
+            'power' => $service->power,
+            'power_time' => $service->power_time,
+            'wifi_connectivity' => $service->wifi_connectivity,
+            'capture_last_bill' => $service->capture_last_bill,
+            'remarks' => $service->remarks,
+
+            'project' => [
+                'id' => $service->project->id,
+                'project_no' => $projectNo,
+                'project_name' => $service->project->project_name,
+                'project_address' => $service->project->project_address,
+                'customer_name' => $service->project->customer->name ?? null,
+                'no_of_panels' => $service->project->no_of_panels,
+                'panel_capacity' => $service->project->panel_capacity,
+                'invertors' => $service->project->invertor->map(function($invertor) {
+                    return [
+                        'id' => $invertor->id,
+                        'invertor_name' => $invertor->invertor_name,
+                        'invertor_capacity' => $invertor->invertor_capacity
+                    ];
+                })
+            ],
+
+            'technicians' => $service->serviceTechniciant->pluck('techniciant_name'),
+
+            'dc_data' => $service->dc ? [
+                'OC_valtage_string_1' => $service->dc->OC_valtage_string_1,
+                'OC_valtage_string_2' => $service->dc->OC_valtage_string_2,
+                'OC_valtage_string_3' => $service->dc->OC_valtage_string_3,
+                'OC_valtage_string_4' => $service->dc->OC_valtage_string_4,
+                'OC_valtage_string_5' => $service->dc->OC_valtage_string_5,
+                'OC_valtage_string_6' => $service->dc->OC_valtage_string_6,
+                'OC_valtage_string_7' => $service->dc->OC_valtage_string_7,
+                'OC_valtage_string_8' => $service->dc->OC_valtage_string_8,
+                'load_valtage_string_1' => $service->dc->load_valtage_string_1,
+                'load_valtage_string_2' => $service->dc->load_valtage_string_2,
+                'load_valtage_string_3' => $service->dc->load_valtage_string_3,
+                'load_valtage_string_4' => $service->dc->load_valtage_string_4,
+                'load_valtage_string_5' => $service->dc->load_valtage_string_5,
+                'load_valtage_string_6' => $service->dc->load_valtage_string_6,
+                'load_valtage_string_7' => $service->dc->load_valtage_string_7,
+                'load_valtage_string_8' => $service->dc->load_valtage_string_8,
+                'load_current_string_1' => $service->dc->load_current_string_1,
+                'load_current_string_2' => $service->dc->load_current_string_2,
+                'load_current_string_3' => $service->dc->load_current_string_3,
+                'load_current_string_4' => $service->dc->load_current_string_4,
+                'load_current_string_5' => $service->dc->load_current_string_5,
+                'load_current_string_6' => $service->dc->load_current_string_6,
+                'load_current_string_7' => $service->dc->load_current_string_7,
+                'load_current_string_8' => $service->dc->load_current_string_8,
+            ] : null,
+            
+            'ac_data' => $service->ac ? [
+                'OC_valtage_L1_N' => $service->ac->OC_valtage_L1_N,
+                'OC_valtage_L2_N' => $service->ac->OC_valtage_L2_N,
+                'OC_valtage_L3_N' => $service->ac->OC_valtage_L3_N,
+                'OC_valtage_L1_L2' => $service->ac->OC_valtage_L1_L2,
+                'OC_valtage_L1_L3' => $service->ac->OC_valtage_L1_L3,
+                'OC_valtage_L2_L3' => $service->ac->OC_valtage_L2_L3,
+                'OC_valtage_N_E' => $service->ac->OC_valtage_N_E,
+                'load_valtage_L1_N' => $service->ac->load_valtage_L1_N,
+                'load_valtage_L2_N' => $service->ac->load_valtage_L2_N,
+                'load_valtage_L3_N' => $service->ac->load_valtage_L3_N,
+                'load_valtage_L1_L2' => $service->ac->load_valtage_L1_L2,
+                'load_valtage_L1_L3' => $service->ac->load_valtage_L1_L3,
+                'load_valtage_L2_L3' => $service->ac->load_valtage_L2_L3,
+                'load_valtage_N_E' => $service->ac->load_valtage_N_E,
+                'load_current_L1_N' => $service->ac->load_current_L1_N,
+                'load_current_L2_N' => $service->ac->load_current_L2_N,
+                'load_current_L3_N' => $service->ac->load_current_L3_N,
+            ] : null,
+            
+            'roof_work' => $service->roofWork ? [
+                'cloudness_reading' => $service->roofWork->cloudness_reading,
+                'cloudness_reading_comments' => $service->roofWork->cloudness_reading_comments,
+                'panel_service' => $service->roofWork->panel_service,
+                'panel_service_comments' => $service->roofWork->panel_service_comments,
+                'structure_service' => $service->roofWork->structure_service,
+                'structure_service_comments' => $service->roofWork->structure_service_comments,
+                'nut_bolt_condition' => $service->roofWork->nut_bolt_condition,
+                'nut_bolt_condition_comments' => $service->roofWork->nut_bolt_condition_comments,
+                'shadow' => $service->roofWork->shadow,
+                'shadow_comments' => $service->roofWork->shadow_comments,
+                'panel_MC4_condition' => $service->roofWork->panel_MC4_condition,
+                'panel_MC4_condition_comments' => $service->roofWork->panel_MC4_condition_comments,
+                'took_photos' => $service->roofWork->took_photos,
+                'took_photos_comments' => $service->roofWork->took_photos_comments,
+            ] : null,
+            
+            'outdoor_work' => $service->outdoorWork ? [
+                'CEB_import_reading' => $service->outdoorWork->CEB_import_reading,
+                'CEB_import_reading_comments' => $service->outdoorWork->CEB_import_reading_comments,
+                'CEB_export_reading' => $service->outdoorWork->CEB_export_reading,
+                'CEB_export_reading_comments' => $service->outdoorWork->CEB_export_reading_comments,
+                'round_resistence' => $service->outdoorWork->round_resistence,
+                'round_resistence_comments' => $service->outdoorWork->round_resistence_comments,
+                'earthing_rod_connection' => $service->outdoorWork->earthing_rod_connection,
+                'earthing_rod_connection_comments' => $service->outdoorWork->earthing_rod_connection_comments,
+            ] : null,
+            
+            'main_panel_work' => $service->mainPanelWork ? [
+                'on_grid_valtage' => $service->mainPanelWork->on_grid_valtage,
+                'on_grid_valtage_comments' => $service->mainPanelWork->on_grid_valtage_comments,
+                'off_grid_valtage' => $service->mainPanelWork->off_grid_valtage,
+                'off_grid_valtage_comments' => $service->mainPanelWork->off_grid_valtage_comments,
+                'invertor_service_fan_time' => $service->mainPanelWork->invertor_service_fan_time,
+                'invertor_service_fan_time_comments' => $service->mainPanelWork->invertor_service_fan_time_comments,
+                'breaker_service' => $service->mainPanelWork->breaker_service,
+                'breaker_service_comments' => $service->mainPanelWork->breaker_service_comments,
+                'DC_surge_arrestors' => $service->mainPanelWork->DC_surge_arrestors,
+                'DC_surge_arrestors_comments' => $service->mainPanelWork->DC_surge_arrestors_comments,
+                'AC_surge_arrestors' => $service->mainPanelWork->AC_surge_arrestors,
+                'AC_surge_arrestors_comments' => $service->mainPanelWork->AC_surge_arrestors_comments,
+                'invertor_connection_MC4_condition' => $service->mainPanelWork->invertor_connection_MC4_condition,
+                'invertor_connection_MC4_condition_comments' => $service->mainPanelWork->invertor_connection_MC4_condition_comments,
+                'low_valtage_range' => $service->mainPanelWork->low_valtage_range,
+                'low_valtage_range_comments' => $service->mainPanelWork->low_valtage_range_comments,
+                'high_valtage_range' => $service->mainPanelWork->high_valtage_range,
+                'high_valtage_range_comments' => $service->mainPanelWork->high_valtage_range_comments,
+                'low_freaquence_range' => $service->mainPanelWork->low_freaquence_range,
+                'low_freaquence_range_comments' => $service->mainPanelWork->low_freaquence_range_comments,
+                'high_freaquence_range' => $service->mainPanelWork->high_freaquence_range,
+                'high_freaquence_range_comments' => $service->mainPanelWork->high_freaquence_range_comments,
+                'invertor_startup_time' => $service->mainPanelWork->invertor_startup_time,
+                'invertor_startup_time_comments' => $service->mainPanelWork->invertor_startup_time_comments,
+                'e_today_invertor' => $service->mainPanelWork->e_today_invertor,
+                'e_today_invertor_comments' => $service->mainPanelWork->e_today_invertor_comments,
+                'e_total_invertor' => $service->mainPanelWork->e_total_invertor,
+                'e_total_invertor_comments' => $service->mainPanelWork->e_total_invertor_comments,
+                'power_bulb_blinking_style' => $service->mainPanelWork->power_bulb_blinking_style,
+                'power_bulb_blinking_style_comments' => $service->mainPanelWork->power_bulb_blinking_style_comments,
+                'alta_vision_sticker' => $service->mainPanelWork->alta_vision_sticker,
+                'alta_vision_sticker_comments' => $service->mainPanelWork->alta_vision_sticker_comments,
+                'wifi_config_done' => $service->mainPanelWork->wifi_config_done,
+                'wifi_config_done_comments' => $service->mainPanelWork->wifi_config_done_comments,
+                'router_username' => $service->mainPanelWork->router_username,
+                'router_username_comments' => $service->mainPanelWork->router_username_comments,
+                'router_password' => $service->mainPanelWork->router_password,
+                'router_password_comments' => $service->mainPanelWork->router_password_comments,
+                'router_serial_number' => $service->mainPanelWork->router_serial_number,
+                'router_serial_number_comments' => $service->mainPanelWork->router_serial_number_comments,
+                'took_photos' => $service->mainPanelWork->took_photos,
+                'took_photos_comments' => $service->mainPanelWork->took_photos_comments,
+            ] : null
+        ];
+
+        return $this->success($response, 'Service details fetched successfully');
+        
+    } catch (ValidationException $e) {
+        return $this->error('', $e->getMessage(), 422);
+    } catch (Exception $e) {
+        return $this->error('', $e->getMessage(), 500);
+    }
+}
+
 }

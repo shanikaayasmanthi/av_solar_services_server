@@ -68,8 +68,10 @@ class Service extends Model
 
        public function supervisor()
        {
-         return $this->belongsTo(Supervisor::class, 'supervisor_id', 'user_id');
+         return $this->belongsTo(Supervisor::class , 'supervisor_id', 'user_id');
        }
+
+
        
 }
 

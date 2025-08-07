@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OnGridController;
 use App\Http\Controllers\OffGridHybridController;
+use App\Http\Controllers\ExternalCustomerController;
 
 
 Route::get('/user', function (Request $request) {
@@ -41,6 +42,9 @@ Route::post('/sup/get_service_ProjectNo',[ServiceController::class,'getProjectNo
 Route::post('/sup/get_customer',[ProjectController::class,'getCustomer'])->middleware('auth:sanctum');
 Route::post('/sup/get_project',[ProjectController::class,'getprojectDetails'])->middleware('auth:sanctum');
 Route::post('/sup/save_service_data',[ServiceController::class,'saveServiceDetails'])->middleware('auth:sanctum');
+Route::post('/services/today-summary', [ServiceController::class, 'getTodayServiceSummary'])->middleware('auth:sanctum');
+Route::post('/services/today-completed', [ServiceController::class, 'getTodayCompletedServices'])->middleware('auth:sanctum');
+Route::post('/services/get-details-for-edit', [ServiceController::class, 'getServiceDetailsForEdit'])->middleware('auth:sanctum');
 
 // get project location
 Route::get('/project-location/{id}', [ProjectController::class, 'getLocation'])->middleware('auth:sanctum');
@@ -108,3 +112,6 @@ Route::put('/projects/{project_id}/installation', [ProjectController::class, 'up
 Route::get('/projects/{project_id}/pending-installation', [ProjectController::class, 'getPendingInstallationDetails'])->middleware('auth:sanctum');
 Route::post('/add-batteries', [BatteryController::class, 'addBatteries'])->middleware('auth:sanctum');
 Route::put('/customers/update-details', [CustomerController::class, 'updateCustomerDetails'])->middleware('auth:sanctum');
+Route::post('/add-external-customers', [ExternalCustomerController::class, 'store'])->middleware('auth:sanctum');
+Route::get('/find-external-customer', [ExternalCustomerController::class, 'findExternalCustomer'])->middleware('auth:sanctum');
+
