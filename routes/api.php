@@ -45,6 +45,7 @@ Route::post('/sup/save_service_data',[ServiceController::class,'saveServiceDetai
 Route::post('/services/today-summary', [ServiceController::class, 'getTodayServiceSummary'])->middleware('auth:sanctum');
 Route::post('/services/today-completed', [ServiceController::class, 'getTodayCompletedServices'])->middleware('auth:sanctum');
 Route::post('/services/get-details-for-edit', [ServiceController::class, 'getServiceDetailsForEdit'])->middleware('auth:sanctum');
+Route::post('/services/update-details', [ServiceController::class, 'updateServiceDetails'])->middleware('auth:sanctum');
 
 // get project location
 Route::get('/project-location/{id}', [ProjectController::class, 'getLocation'])->middleware('auth:sanctum');
