@@ -764,10 +764,12 @@ public function getServiceDetailsForEdit(Request $request)
             $projectNo = $service->project->offGridHybrid->off_grid_hybrid_project_id;
         }
 
+  
+
         $response = [
             'mainData' => [
-                'longitude' => '', // Not returned by your model, add if needed
-                'latitude' => '',  // Not returned by your model, add if needed
+                'longitude' =>  $service->project->longitude ?? null, // Not returned by your model, add if needed
+                'latitude' =>  $service->project->lattitude ?? null,  // Not returned by your model, add if needed
                 'power' => $service->power,
                 'time' => $service->service_time,
                 'wifiConnectivity' => $service->wifi_connectivity,
@@ -895,7 +897,11 @@ return response()->json([
             'errors' => $e->errors()
         ], 422);
         
-    } catch (\Exception $e) {
+    }catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Service update error: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
         return response()->json([
             'status' => 'error',
             'message' => $e->getMessage()
@@ -932,8 +938,18 @@ public function updateServiceDetails(Request $request)
             'wifi_connectivity' => $request->mainData['wifiConnectivity'] ?? false,
             'capture_last_bill' => $request->mainData['electricityBill'] ?? false,
             'remarks' => $request->remarks ?? null,
-            // Add longitude/latitude if needed
+
         ]);
+
+        if($service->project) {
+            // Update project details if needed
+            $service->project->update([
+                'longitude' => isset($request->mainData['longitude'])
+                    ? (double) $request->mainData['longitude'] : null,
+                'lattitude' => isset($request->mainData['latitude'])
+                    ? (double) $request->mainData['latitude'] : null
+            ]);
+        }
 
         // Update DC data if exists
         if ($request->has('dc') && $service->dc) {
@@ -1011,62 +1027,71 @@ public function updateServiceDetails(Request $request)
         // Update Outdoor Work data if exists
         if ($request->has('outdoor_work') && $service->outdoorWork) {
             $service->outdoorWork->update([
-                'CEB_import_reading' => $request->outdoor_work['CEB_import_reading'] ?? null,
-                'CEB_import_reading_comments' => $request->outdoor_work['CEB_import_reading_comments'] ?? null,
-                'CEB_export_reading' => $request->outdoor_work['CEB_export_reading'] ?? null,
-                'CEB_export_reading_comments' => $request->outdoor_work['CEB_export_reading_comments'] ?? null,
-                'round_resistence' => $request->outdoor_work['round_resistence'] ?? null,
-                'round_resistence_comments' => $request->outdoor_work['round_resistence_comments'] ?? null,
-                'earthing_rod_connection' => $request->outdoor_work['earthing_rod_connection'] ?? false,
-                'earthing_rod_connection_comments' => $request->outdoor_work['earthing_rod_connection_comments'] ?? null,
+                'CEB_import_reading' => $request->outdoor_work['cebImport']['value'] ?? null,
+                'CEB_import_reading_comments' => $request->outdoor_work['cebImport']['comment'] ?? null,
+                'CEB_export_reading' => $request->outdoor_work['cebExport']['value'] ?? null,
+                'CEB_export_reading_comments' => $request->outdoor_work['cebExport']['comment'] ?? null,
+                'round_resistence' => $request->outdoor_work['groundResistance']['value'] ?? null,
+                'round_resistence_comments' => $request->outdoor_work['groundResistance']['comment'] ?? null,
+                'earthing_rod_connection' => $request->outdoor_work['earthRod']['checked'] ?? false,
+                'earthing_rod_connection_comments' => $request->outdoor_work['earthRod']['comment'] ?? null,
             ]);
         }
-
+          
+        // $powerBulbMapping = [
+        //     'Slow' => 1,
+        //     'Solid' => 2,
+        //     'Fast' => 3
+        // ];
+        
+        // $powerBulbValue = $powerBulbMapping[$request->main_panel_work['powerBulbBlinkingStyle']['value'] ?? ''] ?? null;
         // Update Main Panel Work data if exists
         if ($request->has('main_panel_work') && $service->mainPanelWork) {
             $service->mainPanelWork->update([
-                'off_grid_valtage' => $request->main_panel_work['off_grid_valtage'] ?? null,
-                'off_grid_valtage_comments' => $request->main_panel_work['off_grid_valtage_comments'] ?? null,
-                'on_grid_valtage' => $request->main_panel_work['on_grid_valtage'] ?? null,
-                'on_grid_valtage_comments' => $request->main_panel_work['on_grid_valtage_comments'] ?? null,
-                'invertor_service_fan_time' => $request->main_panel_work['invertor_service_fan_time'] ?? false,
-                'invertor_service_fan_time_comments' => $request->main_panel_work['invertor_service_fan_time_comments'] ?? null,
-                'breaker_service' => $request->main_panel_work['breaker_service'] ?? false,
-                'breaker_service_comments' => $request->main_panel_work['breaker_service_comments'] ?? null,
-                'DC_surge_arrestors' => $request->main_panel_work['DC_surge_arrestors'] ?? false,
-                'DC_surge_arrestors_comments' => $request->main_panel_work['DC_surge_arrestors_comments'] ?? null,
-                'AC_surge_arrestors' => $request->main_panel_work['AC_surge_arrestors'] ?? false,
-                'AC_surge_arrestors_comments' => $request->main_panel_work['AC_surge_arrestors_comments'] ?? null,
-                'invertor_connection_MC4_condition' => $request->main_panel_work['invertor_connection_MC4_condition'] ?? false,
-                'invertor_connection_MC4_condition_comments' => $request->main_panel_work['invertor_connection_MC4_condition_comments'] ?? null,
-                'low_valtage_range' => $request->main_panel_work['low_valtage_range'] ?? null,
-                'low_valtage_range_comments' => $request->main_panel_work['low_valtage_range_comments'] ?? null,
-                'high_valtage_range' => $request->main_panel_work['high_valtage_range'] ?? null,
-                'high_valtage_range_comments' => $request->main_panel_work['high_valtage_range_comments'] ?? null,
-                'low_freaquence_range' => $request->main_panel_work['low_freaquence_range'] ?? null,
-                'low_freaquence_range_comments' => $request->main_panel_work['low_freaquence_range_comments'] ?? null,
-                'high_freaquence_range' => $request->main_panel_work['high_freaquence_range'] ?? null,
-                'high_freaquence_range_comments' => $request->main_panel_work['high_freaquence_range_comments'] ?? null,
-                'invertor_startup_time' => $request->main_panel_work['invertor_startup_time'] ?? null,
-                'invertor_startup_time_comments' => $request->main_panel_work['invertor_startup_time_comments'] ?? null,
-                'e_today_invertor' => $request->main_panel_work['e_today_invertor'] ?? null,
-                'e_today_invertor_comments' => $request->main_panel_work['e_today_invertor_comments'] ?? null,
-                'e_total_invertor' => $request->main_panel_work['e_total_invertor'] ?? null,
-                'e_total_invertor_comments' => $request->main_panel_work['e_total_invertor_comments'] ?? null,
-                'wifi_config_done' => $request->main_panel_work['wifi_config_done'] ?? false,
-                'wifi_config_done_comments' => $request->main_panel_work['wifi_config_done_comments'] ?? null,
-                'power_bulb_blinking_style' => $request->main_panel_work['power_bulb_blinking_style'] ?? null,
-                'power_bulb_blinking_style_comments' => $request->main_panel_work['power_bulb_blinking_style_comments'] ?? null,
-                'router_username' => $request->main_panel_work['router_username'] ?? null,
-                'router_username_comments' => $request->main_panel_work['router_username_comments'] ?? null,
-                'router_password' => $request->main_panel_work['router_password'] ?? null,
-                'router_password_comments' => $request->main_panel_work['router_password_comments'] ?? null,
-                'router_serial_number' => $request->main_panel_work['router_serial_number'] ?? null,
-                'router_serial_number_comments' => $request->main_panel_work['router_serial_number_comments'] ?? null,
-                'alta_vision_sticker' => $request->main_panel_work['alta_vision_sticker'] ?? false,
-                'alta_vision_sticker_comments' => $request->main_panel_work['alta_vision_sticker_comments'] ?? null,
-                'took_photos' => $request->main_panel_work['took_photos'] ?? false,
-                'took_photos_comments' => $request->main_panel_work['took_photos_comments'] ?? null,
+                'off_grid_valtage' => $request->main_panel_work['offlineGridVoltage']['value'] ?? null,
+                'off_grid_valtage_comments' => $request->main_panel_work['offlineGridVoltage']['comment'] ?? null,
+                'on_grid_valtage' => $request->main_panel_work['onlineGridVoltage']['value'] ?? null,
+                'on_grid_valtage_comments' => $request->main_panel_work['onlineGridVoltage']['comment'] ?? null,
+                'invertor_service_fan_time' => $request->main_panel_work['invertorServiceFanTime']['checked'] ?? false,
+                'invertor_service_fan_time_comments' => $request->main_panel_work['invertorServiceFanTime']['comment'] ?? null,
+                'breaker_service' => $request->main_panel_work['breakerService']['checked'] ?? false,
+                'breaker_service_comments' => $request->main_panel_work['breakerService']['comment'] ?? null,
+                'DC_surge_arrestors' => $request->main_panel_work['dcSurgeArrestors']['checked'] ?? false,
+                'DC_surge_arrestors_comments' => $request->main_panel_work['dcSurgeArrestors']['comment'] ?? null,
+                'AC_surge_arrestors' => $request->main_panel_work['acSurgeArrestors']['checked'] ?? false,
+                'AC_surge_arrestors_comments' => $request->main_panel_work['acSurgeArrestors']['comment'] ?? null,
+                'invertor_connection_MC4_condition' => $request->main_panel_work['invertorConnection']['checked'] ?? false,
+                'invertor_connection_MC4_condition_comments' => $request->main_panel_work['invertorConnection']['comment'] ?? null,
+                'low_valtage_range' => $request->main_panel_work['lowVoltageRange']['value'] ?? null,
+                'low_valtage_range_comments' => $request->main_panel_work['lowVoltageRange']['comment'] ?? null,
+                'high_valtage_range' => $request->main_panel_work['highVoltageRange']['value'] ?? null,
+                'high_valtage_range_comments' => $request->main_panel_work['highVoltageRange']['comment'] ?? null,
+                'low_freaquence_range' => $request->main_panel_work['lowFrequencyRange']['value'] ?? null,
+                'low_freaquence_range_comments' => $request->main_panel_work['lowFrequencyRange']['comment'] ?? null,
+                'high_freaquence_range' => $request->main_panel_work['highFrequencyRange']['value'] ?? null,
+                'high_freaquence_range_comments' => $request->main_panel_work['highFrequencyRange']['comment'] ?? null,
+                'invertor_startup_time' => $request->main_panel_work['invertorSetupTime']['value'] ?? null,
+                'invertor_startup_time_comments' => $request->main_panel_work['invertorSetupTime']['comment'] ?? null,
+                'e_today_invertor' => $request->main_panel_work['eTodayInvertor']['value'] ?? null,
+                'e_today_invertor_comments' => $request->main_panel_work['eTodayInvertor']['comment'] ?? null,
+                'e_total_invertor' => $request->main_panel_work['eTotalInvertor']['value'] ?? null,
+                'e_total_invertor_comments' => $request->main_panel_work['eTotalInvertor']['comment'] ?? null,
+                'wifi_config_done' => $request->main_panel_work['wifiConfig']['checked'] ?? false,
+                'wifi_config_done_comments' => $request->main_panel_work['wifiConfig']['comment'] ?? null,
+                // 'power_bulb_blinking_style' => $powerBulbValue,
+                // 'power_bulb_blinking_style_comments' => $request->main_panel_work['powerBulbBlinkingStyle']['comment'] ?? null,
+                 'power_bulb_blinking_style' => $request->main_panel_work['powerBulbBlinkingStyle']['value'] ?? null,
+                 'power_bulb_blinking_style_comments' => $request->main_panel_work['powerBulbBlinkingStyle']['comment'] ?? null,
+                'router_username' => $request->main_panel_work['routerUsername']['value'] ?? null,
+                'router_username_comments' => $request->main_panel_work['routerUsername']['comment'] ?? null,
+                'router_password' => $request->main_panel_work['routerPassword']['value'] ?? null,
+                'router_password_comments' => $request->main_panel_work['routerPassword']['comment'] ?? null,
+                'router_serial_number' => $request->main_panel_work['routerSerialNo']['value'] ?? null,
+                'router_serial_number_comments' => $request->main_panel_work['routerSerialNo']['comment'] ?? null,
+                'alta_vision_sticker' => $request->main_panel_work['serviceAVSticker']['checked'] ?? false,
+                'alta_vision_sticker_comments' => $request->main_panel_work['serviceAVSticker']['comment'] ?? null,
+                'took_photos' => $request->main_panel_work['tookPhotos']['checked'] ?? false,
+                'took_photos_comments' => $request->main_panel_work['tookPhotos']['comment'] ?? null,
             ]);
         }
 
@@ -1089,6 +1114,7 @@ public function updateServiceDetails(Request $request)
         return response()->json([
             'status' => 'success',
             'message' => 'Service details updated successfully',
+            'service' => $service->load('project'),
             'data' => $service->load([
                 'project.onGrid',
                 'project.offGridHybrid',
@@ -1111,13 +1137,16 @@ public function updateServiceDetails(Request $request)
             'errors' => $e->errors()
         ], 422);
         
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json([
-            'status' => 'error',
-            'message' => $e->getMessage()
-        ], 500);
-    }
+    }catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Service update error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
 }
 
 
