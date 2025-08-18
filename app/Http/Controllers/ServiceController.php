@@ -330,7 +330,7 @@ class ServiceController extends Controller
             $request->validate([
                 'user_id' => 'required',
                 'service_id' => 'required|exists:services,id',
-                'service_data' => 'required'
+                'service_data' => 'required|json'
             ]);
 
             $serviceData = json_decode($request->service_data);
@@ -345,81 +345,93 @@ class ServiceController extends Controller
             DB::beginTransaction();
 
             // Update Service mainData
-            $mainData = $serviceData->mainData;
-            $time = Carbon::today()->setTimeFromTimeString($mainData->time)->toDateTimeString();
+            $mainData = $serviceData->mainData?? null;
+        if ($mainData) {
+            $time = !empty($mainData->time) 
+                ? Carbon::today()->setTimeFromTimeString($mainData->time)->toDateTimeString() 
+                : Carbon::now()->toDateTimeString();
 
             $service->update([
-                'power' => (float)$mainData->power,
+                'power' => isset($mainData->power) ? (float)$mainData->power : $service->power,
                 'power_time' => $time,
-                'wifi_connectivity' => $mainData->wifiConnectivity ?? false,
-                'capture_last_bill' => $mainData->electricityBill ?? false,
+                'wifi_connectivity' => !empty($mainData->wifiConnectivity),
+                'capture_last_bill' => !empty($mainData->electricityBill),
             ]);
 
-            // Save DC
-            $dc = $serviceData->dc;
+            if ($service->project) {
+                $service->project->update([
+                    'longitude' => isset($mainData->longitude) ? (double)$mainData->longitude : $service->project->longitude,
+                    'lattitude' => isset($mainData->latitude) ? (double)$mainData->latitude : $service->project->lattitude,
+                ]);
+            }
+        }
+
+
+        // Save DC
+        if (isset($serviceData->dc)) {
             $dcController = new DCController();
-            if (!$dcController->saveServiceDCData($request->service_id, $dc)) {
+            if (!$dcController->saveServiceDCData($request->service_id, $serviceData->dc)) {
                 DB::rollBack();
                 return $this->error('', 'Failed saving DC', 500);
             }
+        }
 
-            // Save AC
-            $ac = $serviceData->ac;
+        // Save AC
+        if (isset($serviceData->ac)) {
             $acController = new ACController();
-            if (!$acController->saveServiceACData($request->service_id, $ac)) {
+            if (!$acController->saveServiceACData($request->service_id, $serviceData->ac)) {
                 DB::rollBack();
                 return $this->error('', 'Failed saving AC', 500);
             }
+        }
 
-            // Save RoofWork
-            $roofWork = $serviceData->roof_work;
+        // Save RoofWork
+        if (isset($serviceData->roof_work)) {
             $roofWorkController = new RoofWorkController();
-            if (!$roofWorkController->saveServiceRoofWorkData($request->service_id, $roofWork)) {
+            if (!$roofWorkController->saveServiceRoofWorkData($request->service_id, $serviceData->roof_work)) {
                 DB::rollBack();
                 return $this->error('', 'Failed saving RoofWork', 500);
             }
+        }
 
-            // Save OutdoorWork
-            $outDoorWork = $serviceData->outdoor_work;
+        // Save OutdoorWork
+        if (isset($serviceData->outdoor_work)) {
             $outDoorWorkController = new OutdoorWorkController();
-            if (!$outDoorWorkController->saveServiceOutDoorWork($request->service_id, $outDoorWork)) {
+            if (!$outDoorWorkController->saveServiceOutDoorWork($request->service_id, $serviceData->outdoor_work)) {
                 DB::rollBack();
                 return $this->error('', 'Failed saving OutdoorWork', 500);
             }
+        }
 
-            // Save MainPanelWork
-            $mainPanelWork = $serviceData->mainpanel_work;
+        // Save MainPanelWork
+        if (isset($serviceData->main_panel_work)) {
             $mainPanelWorkController = new MainPanelWorkController();
-            if (!$mainPanelWorkController->saveServiceMainPanelWork($request->service_id, $mainPanelWork)) {
+            if (!$mainPanelWorkController->saveServiceMainPanelWork($request->service_id, $serviceData->main_panel_work)) {
                 DB::rollBack();
                 return $this->error('', 'Failed saving MainPanelWork', 500);
             }
-
-            // Save Technicians
-            $technicians = $serviceData->technicians;
-            if (!empty($technicians)) {
-                $technicianController = new ServiceTechniciantController();
-                if (!$technicianController->saveServiceTechnicians($request->service_id, $technicians)) {
-                    DB::rollBack();
-                    return $this->error('', 'Failed saving Technicians', 500);
-                }
-            }
-
-            // Finally: Mark Service done
-            $service->update([
-                'service_done' => true,
-            ]);
-
-            //Everything is fine commit
-            DB::commit();
-            return $this->success('', 'Service saved successfully');
-        } catch (ValidationException $e) {
-            return $this->error('', $e, 401);
-        } catch (Exception $e) {
-            DB::rollBack();  // rollback on any unexpected error
-            return $this->error('', $e->getMessage(), 500);
         }
+
+        // Save Technicians
+        if (!empty($serviceData->technicians)) {
+            $technicianController = new ServiceTechniciantController();
+            if (!$technicianController->saveServiceTechnicians($request->service_id, $serviceData->technicians)) {
+                DB::rollBack();
+                return $this->error('', 'Failed saving Technicians', 500);
+            }
+        }
+
+        $service->update(['service_done' => true]);
+
+        DB::commit();
+        return $this->success('', 'Service saved successfully');
+    } catch (ValidationException $e) {
+        return $this->error('', $e->errors(), 422);
+    } catch (Exception $e) {
+        DB::rollBack();
+        return $this->error('', $e->getMessage(), 500);
     }
+}
 
     public function getTechniciansByServiceId(Request $request)
     {
