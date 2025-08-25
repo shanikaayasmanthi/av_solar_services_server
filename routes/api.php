@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OnGridController;
 use App\Http\Controllers\OffGridHybridController;
 use App\Http\Controllers\ExternalCustomerController;
+use App\Http\Controllers\ExternalProjectController;
 
 
 Route::get('/user', function (Request $request) {
@@ -46,6 +47,8 @@ Route::post('/services/today-summary', [ServiceController::class, 'getTodayServi
 Route::post('/services/today-completed', [ServiceController::class, 'getTodayCompletedServices'])->middleware('auth:sanctum');
 Route::post('/services/get-details-for-edit', [ServiceController::class, 'getServiceDetailsForEdit'])->middleware('auth:sanctum');
 Route::post('/services/update-details', [ServiceController::class, 'updateServiceDetails'])->middleware('auth:sanctum');
+Route::get('/supervisor-profile/{userId}', [UserController::class, 'getSupervisorProfile']);
+
 
 // get project location
 Route::get('/project-location/{id}', [ProjectController::class, 'getLocation'])->middleware('auth:sanctum');
@@ -81,8 +84,10 @@ Route::post('/service/technicians', [ServiceController::class, 'getTechniciansBy
 
 Route::post('/addcustomer', [CustomerController::class, 'store'])->middleware('auth:sanctum');
 Route::post('/openproject', [ProjectController::class, 'openProject'])->middleware('auth:sanctum');
+Route::post('/open-external-project', [ProjectController::class, 'openExternalProject'])->middleware('auth:sanctum');
 Route::get('/find-customer', [CustomerController::class, 'find'])->middleware('auth:sanctum');
 Route::get('/get-projects', [ProjectController::class, 'getAllProjects'])->middleware('auth:sanctum');
+Route::get('/external-projects', [ProjectController::class, 'getExternalProjects'])->middleware('auth:sanctum');
 Route::get('/get-project', [ProjectController::class, 'getprojectData'])->middleware('auth:sanctum');
 Route::get('/get-customer', [ProjectController::class, 'getCustomerData'])->middleware('auth:sanctum');
 Route::get('/get-project-count',[ProjectController::class,'getProjectCount'])->middleware('auth:sanctum');

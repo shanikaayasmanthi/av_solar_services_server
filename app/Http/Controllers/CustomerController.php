@@ -11,68 +11,64 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string',
-            'email' => 'required|email|unique:users',
-            'address' => 'required|string',
-            'phone_numbers' => 'required|array|min:1',
-            'phone_numbers.*' => 'required|string|distinct|min:5|max:20'
+public function store(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string',
+        'email' => 'required|email|unique:users',
+        'address' => 'required|string',
+        'phone_numbers' => 'required|array|min:1',
+        'phone_numbers.*' => 'required|string|distinct|min:5|max:20'
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make('user123'),
+            'user_type_id' => 3 
         ]);
 
-        DB::beginTransaction();
+        $customer = Customer::create([
+            'user_id' => $user->id,
+            'name' => $request->name,
+            'address' => $request->address,
+        ]);
 
-        try {
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make('user123'), // default password
-                'user_type_id' => 3 
-            ]);
-
-            // 2. Create customer record
-            $customer = Customer::create([
-                'user_id' => $user->id,
-                'name' => $request->name,
-                'address' => $request->address,
-                // 'phone' => $request->phone
-            ]);
-
-            if(!$customer){
-                throw new \Exception('Customer creation failed');
-            }
-
-            // 3. Create phone numbers
-            $phoneNumbersToInsert = [];
-            foreach ($request->phone_numbers as $phoneNumber) {
-                // You might want to sanitize/format phone numbers here
-                $phoneNumbersToInsert[] = [
-                    'customer_id' => $customer->id,
-                    'phone_no' => $phoneNumber,
-                    'created_at' => now(), 
-                    'updated_at' => now(), 
-                ];
-            }
-            if (!empty($phoneNumbersToInsert)) {
-                CustomerPhoneNo::insert($phoneNumbersToInsert);
-            }
-            DB::commit();
-
-            return response()->json([
-                'message' => 'Customer created successfully.',
-                'customer' => $customer
-            ], 201);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'message' => 'Error creating customer',
-                'error' => $e->getMessage()
-            ], 500);
+        if(!$customer){
+            throw new \Exception('Customer creation failed');
         }
+
+        // Create phone numbers with proper timestamp handling
+        foreach ($request->phone_numbers as $phoneNumber) {
+            CustomerPhoneNo::create([
+                'customer_id' => $customer->user_id, // Use user_id as customer_id
+                'phone_no' => $phoneNumber,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+        
+        DB::commit();
+
+        return response()->json([
+            'message' => 'Customer created successfully.',
+            'customer' => $customer,
+            'user_id' => $user->id
+        ], 201);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Customer creation error: ' . $e->getMessage());
+        
+        return response()->json([
+            'message' => 'Error creating customer',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
 
     public function find(Request $request) {
     $keyword = $request->input('keyword');

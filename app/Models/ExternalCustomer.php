@@ -13,9 +13,16 @@ class ExternalCustomer extends Model
         'nic',
         'email',
         'phone_no',
-        'address'
+        'address',
+        'user_id'
     ];
 
-   public $timestamps = false;
+   //public $timestamps = false;
+
+public function user()
+{
+    return $this->belongsTo(User::class, 'user_id');
+}
+
 
 }

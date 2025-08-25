@@ -19,5 +19,10 @@ class UserType extends Model
         return $this->hasMany(User::class);
     }
 
+    public function userType()
+    {
+        return $this->belongsTo(UserType::class, 'user_type_id');
+    }
+
     
 }

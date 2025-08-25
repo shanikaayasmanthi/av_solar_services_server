@@ -72,4 +72,10 @@ class User extends Authenticatable
     {
         return $this->hasOne(Customer::class);
     }
+
+public function externalCustomer()
+{
+    return $this->hasOne(ExternalCustomer::class, 'user_id');
+}
+
 }

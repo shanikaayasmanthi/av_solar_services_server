@@ -17,6 +17,9 @@ class Project extends Model
      protected $fillable = [
         'customer_id',
         'type',
+        'company_name',
+        'installed_date_ocp',
+        'External/Internal',
         'project_name',
         'neatest_town',
         'project_address',

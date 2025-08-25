@@ -154,6 +154,41 @@ public function store(Request $request)
     ]);
 }
 
+//method to get profile details
+public function getSupervisorProfile($userId)
+{
+    try{
+        //find user 
+        $user = User::with('supervisor','userType')->find($userId);
+
+        if (!$user || !$user->supervisor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User profile not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'=> [
+                'user_id'   => $user->supervisor->user_id,
+                'name'=>$user->supervisor->name,
+                'email'=> $user->email,
+                'phone'=> $user->supervisor->phone,
+                'address'=> $user->supervisor->address ?? null,
+                'nic'=> $user->supervisor->nic,
+                'user_type'=> $user->userType ? $user->userType->name : null,
+            ],
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Server Error',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
 
 
   

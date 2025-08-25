@@ -10,8 +10,10 @@ class CustomerPhoneNo extends Model
 
     protected $fillable = [
         "customer_id",
-        "phone_no"
-    ] ;
+        "phone_no",
+        "created_at",
+        "updated_at"
+    ];
 
         public function customer(){
         return $this->belongsTo(Customer::class);
