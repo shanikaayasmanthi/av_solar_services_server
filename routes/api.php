@@ -120,4 +120,7 @@ Route::post('/add-batteries', [BatteryController::class, 'addBatteries'])->middl
 Route::put('/customers/update-details', [CustomerController::class, 'updateCustomerDetails'])->middleware('auth:sanctum');
 Route::post('/add-external-customers', [ExternalCustomerController::class, 'store'])->middleware('auth:sanctum');
 Route::get('/find-external-customer', [ExternalCustomerController::class, 'findExternalCustomer'])->middleware('auth:sanctum');
+Route::get('/service-summary', [ServiceController::class, 'monthlySummary'])->middleware('auth:sanctum');
+Route::get('/service-summary/annual', [ServiceController::class, 'annualSummary'])->middleware('auth:sanctum');
+Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus'])->middleware('auth:sanctum');
 

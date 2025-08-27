@@ -199,7 +199,7 @@ class ProjectController extends Controller
             'system_capacity' => 'numeric|min:0.1',
             'service_years_in_agreement' => 'required|integer|min:1',
             'service_rounds_in_agreement' => 'required|integer|min:1',
-            'project_no' => 'required|integer',
+            'project_no' => 'required|string',
             // 'project_installation_date' => 'required|date',
             // 'longitude' => 'nullable|numeric',
             // 'lattitude' => 'nullable|numeric',
@@ -299,13 +299,13 @@ class ProjectController extends Controller
             }
 
             if($type==''){
-                $projects = $query->orderBy('created_at', 'asc')->paginate(6);
+                $projects = $query->orderBy('created_at', 'asc')->paginate(8);
 
                 
             }else{
                 $projects = $query->where('type', $type)
                     ->orderBy('created_at', 'desc')
-                    ->paginate(6);
+                    ->paginate(8);
             }
 
             

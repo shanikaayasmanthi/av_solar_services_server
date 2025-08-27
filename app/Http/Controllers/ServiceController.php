@@ -1161,5 +1161,149 @@ public function updateServiceDetails(Request $request)
         }
 }
 
+public function monthlySummary(Request $request)
+    {
+         $month = $request->query('month', Carbon::now()->month);
+         $year  = $request->query('year', Carbon::now()->year);
+
+        // Load services of current month where service_done = true, with project & solar panels
+        $services = Service::with(['project.solarPanel'])
+            ->whereMonth('service_date', $month)
+            ->whereYear('service_date', $year)
+            ->where('service_done', 1)
+            ->get();
+
+        $summary = [
+            'on_grid' => [],
+            'off_grid' => [],
+        ];
+
+        foreach ($services as $s) {
+            if (!$s->project) continue;
+
+            // Detect grid type
+            $type = strtolower($s->project->type ?? '');
+            if (str_contains($type, 'on')) {
+                $gridKey = 'on_grid';
+            } elseif (str_contains($type, 'off')) {
+                $gridKey = 'off_grid';
+            } else {
+                continue;
+            }
+
+            // Build group key
+            $prefix = $s->service_type === 'paid' ? 'Paid Service ' : 'Service ';
+            $round  = $prefix . $s->service_round_no;
+
+            // Track unique sites
+            $siteKey = $s->project->longitude . ',' . $s->project->lattitude;
+
+            if (!isset($summary[$gridKey][$round])) {
+                $summary[$gridKey][$round] = [
+                    'sites'    => [],
+                    'capacity' => [],
+                ];
+            }
+
+            // Add site
+            $summary[$gridKey][$round]['sites'][$siteKey] = true;
+
+            // Calculate capacity from solar panels for this project
+            $capacityKw = $s->project->solarPanel
+                ->where('is_current', true)
+                ->sum(fn($p) => ($p->wattage_of_pannel * $p->no_of_panels) / 1000); // Convert to kW
+
+            // Assign capacity only once per project
+            $summary[$gridKey][$round]['capacity'][$s->project->id] = $capacityKw;
+        }
+
+        // Transform into final format
+        foreach (['on_grid', 'off_grid'] as $key) {
+            $summary[$key] = collect($summary[$key] ?? [])->map(function ($row, $round) {
+                return [
+                    'service_round' => $round,
+                    'no_of_sites'   => count($row['sites']),
+                    'capacity'      => round(array_sum($row['capacity']), 2), // kW
+                ];
+            })->values();
+        }
+
+        return response()->json([
+            'month'   => $month,
+            'year'    => $year,
+            'summary' => $summary,
+        ]);
+    }
+
+    public function annualSummary(Request $request)
+{
+    $year  = $request->query('year', Carbon::now()->year);
+
+    // Load services of current year where service_done = true, with project & solar panels
+    $services = Service::with(['project.solarPanel'],$year)
+        ->whereYear('service_date', $year)
+        ->where('service_done', 1)
+        ->get();
+
+    $summary = [
+        'on_grid' => [],
+        'off_grid' => [],
+    ];
+
+    foreach ($services as $s) {
+        if (!$s->project) continue;
+
+        // Detect grid type
+        $type = strtolower($s->project->type ?? '');
+        if (str_contains($type, 'on')) {
+            $gridKey = 'on_grid';
+        } elseif (str_contains($type, 'off')) {
+            $gridKey = 'off_grid';
+        } else {
+            continue;
+        }
+
+        // Build group key
+        $prefix = $s->service_type === 'paid' ? 'Paid Service ' : 'Service ';
+        $round  = $prefix . $s->service_round_no;
+
+        // Track unique sites
+        $siteKey = $s->project->longitude . ',' . $s->project->lattitude;
+
+        if (!isset($summary[$gridKey][$round])) {
+            $summary[$gridKey][$round] = [
+                'sites'    => [],
+                'capacity' => [],
+            ];
+        }
+
+        // Add site
+        $summary[$gridKey][$round]['sites'][$siteKey] = true;
+
+        // Calculate capacity from solar panels for this project
+        $capacityKw = $s->project->solarPanel
+            ->where('is_current', true)
+            ->sum(fn($p) => ($p->wattage_of_pannel * $p->no_of_panels) / 1000); // Convert to kW
+
+        // Assign capacity only once per project
+        $summary[$gridKey][$round]['capacity'][$s->project->id] = $capacityKw;
+    }
+
+    // Transform into final format
+    foreach (['on_grid', 'off_grid'] as $key) {
+        $summary[$key] = collect($summary[$key] ?? [])->map(function ($row, $round) {
+            return [
+                'service_round' => $round,
+                'no_of_sites'   => count($row['sites']),
+                'capacity'      => round(array_sum($row['capacity']), 2), // kW
+            ];
+        })->values();
+    }
+
+    return response()->json([
+        'year'    => $year,
+        'summary' => $summary,
+    ]);
+}
 
 }

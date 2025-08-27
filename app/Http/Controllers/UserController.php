@@ -27,7 +27,8 @@ class UserController extends Controller
 
         $supervisors = User::where('user_type_id', 2)
             ->where(function ($query) use ($searchTerm) {
-                $query->where('name', 'like', '%' . $searchTerm . '%');
+                $query->where('is_active', true)
+                      ->where('name', 'like', '%' . $searchTerm . '%');
             })
             ->get(['id', 'name',]);
 
@@ -91,16 +92,31 @@ public function searchCustomer(Request $request)
     public function getAllUsersWithTypeAndStatus()
 {
     try {
-        $users = User::with('userType') 
+        $users = User::with('userType', 'admin', 'supervisor', 'customer.customerPhoneNo') 
             ->select('id', 'name', 'email', 'is_active', 'user_type_id')
             ->get()
             ->map(function ($user) {
+
+                                $phones = [];
+                if ($user->userType && strtolower($user->userType->name) === 'admin') {
+                    $phones = $user->admin ? [$user->admin->phone] : [];
+                } elseif ($user->userType && strtolower($user->userType->name) === 'super admin') {
+                    $phones = $user->admin ? [$user->admin->phone] : [];
+                } elseif ($user->userType && strtolower($user->userType->name) === 'supervisor') {
+                    $phones = $user->supervisor ? [$user->supervisor->phone] : [];
+                } elseif ($user->userType && strtolower($user->userType->name) === 'customer') {
+                    $phones = $user->customer
+                        ? $user->customer->customerPhoneNo->pluck('phone_no')->toArray()
+                        : [];
+                }
+
                 return [
                     'id'         => $user->id,
                     'name'       => $user->name,
                     'email'      => $user->email,
                     'is_active'  => (bool) $user->is_active,
                     'user_type'  => $user->userType->name ?? 'Unknown',
+                    'phones'     => $phones,
                 ];
             });
 
@@ -189,7 +205,19 @@ public function getSupervisorProfile($userId)
     }
 }
 
+public function toggleStatus($id)
+{
+    try {
+        $user = User::findOrFail($id);
+        $user->is_active = !$user->is_active;
+        $user->save();
 
-
-  
+        return $this->success([
+            'id' => $user->id,
+            'is_active' => $user->is_active,
+        ], 'User status updated successfully.');
+    } catch (\Exception $e) {
+        return $this->error('Failed to update user status', $e->getMessage(), 500);
+    }
+}
 }

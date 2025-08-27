@@ -236,7 +236,7 @@ public function getCustomersForNonInstalledProjects(Request $request)
     try {
     
         $project = Project::with('customer.user', 'customer.customerPhoneNo')
-                        ->where('isInstalled', false)
+                        // ->where('isInstalled', false)
                         ->findOrFail($request->project_id);
 
         
