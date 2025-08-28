@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Log;
 
 use function PHPSTORM_META\map;
 use function PHPUnit\Framework\isEmpty;
+//use Carbon\Carbon;
 
 class ServiceController extends Controller
 {
@@ -776,6 +777,7 @@ public function getServiceDetailsForEdit(Request $request)
             $projectNo = $service->project->offGridHybrid->off_grid_hybrid_project_id;
         }
 
+
   
 
         $response = [
@@ -783,7 +785,8 @@ public function getServiceDetailsForEdit(Request $request)
                 'longitude' =>  $service->project->longitude ?? null, // Not returned by your model, add if needed
                 'latitude' =>  $service->project->lattitude ?? null,  // Not returned by your model, add if needed
                 'power' => $service->power,
-                'time' => $service->service_time,
+                'time' => $service->power_time 
+                 ? \Carbon\Carbon::parse($service->power_time)->format('H:i:s') : null,
                 'wifiConnectivity' => $service->wifi_connectivity,
                 'electricityBill' => $service->capture_last_bill,
             ],
@@ -943,10 +946,18 @@ public function updateServiceDetails(Request $request)
         // Find the service
         $service = Service::findOrFail($request->service_id);
 
+// Convert time string to full datetime (using today's date)
+$powerTime = null;
+if (!empty($request->mainData['time'])) {
+    $powerTime = Carbon::createFromFormat('H:i:s', $request->mainData['time'])
+        ->setDate(now()->year, now()->month, now()->day)
+        ->format('Y-m-d H:i:s');
+}
+
         // Update main service data
         $service->update([
             'power' => $request->mainData['power'] ?? null,
-            'service_time' => $request->mainData['time'] ?? null,
+            'power_time' => $powerTime,
             'wifi_connectivity' => $request->mainData['wifiConnectivity'] ?? false,
             'capture_last_bill' => $request->mainData['electricityBill'] ?? false,
             'remarks' => $request->remarks ?? null,

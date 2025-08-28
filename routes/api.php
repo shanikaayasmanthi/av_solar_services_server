@@ -48,6 +48,7 @@ Route::post('/services/today-completed', [ServiceController::class, 'getTodayCom
 Route::post('/services/get-details-for-edit', [ServiceController::class, 'getServiceDetailsForEdit'])->middleware('auth:sanctum');
 Route::post('/services/update-details', [ServiceController::class, 'updateServiceDetails'])->middleware('auth:sanctum');
 Route::get('/supervisor-profile/{userId}', [UserController::class, 'getSupervisorProfile']);
+Route::post('/update-supervisor-profile/{id}', [UserController::class, 'updateSupervisorProfile']);
 
 
 // get project location

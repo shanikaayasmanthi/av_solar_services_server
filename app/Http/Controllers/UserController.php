@@ -220,4 +220,54 @@ public function toggleStatus($id)
         return $this->error('Failed to update user status', $e->getMessage(), 500);
     }
 }
+
+public function updateSupervisorProfile(Request $request, $userId)
+{
+    try {
+        $user = User::with('supervisor')->find($userId);
+
+        if (!$user || !$user->supervisor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found'
+            ], 404);
+        }
+
+        // validate inputs
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'phone' => 'nullable|string|max:15',
+            'address' => 'nullable|string|max:255',
+        ]);
+
+        // update user & supervisor
+        $user->email = $validated['email'];
+        $user->save();
+
+        $user->supervisor->name = $validated['name'];
+        $user->supervisor->phone = $validated['phone'] ?? $user->supervisor->phone;
+        $user->supervisor->address = $validated['address'] ?? $user->supervisor->address;
+        $user->supervisor->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully',
+            'data' => [
+                'user_id' => $user->id,
+                'name' => $user->supervisor->name,
+                'email' => $user->email,
+                'phone' => $user->supervisor->phone,
+                'address' => $user->supervisor->address,
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Server Error',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
 }
