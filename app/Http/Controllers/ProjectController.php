@@ -10,9 +10,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Exception;
 use Illuminate\Support\Str;
+use Illuminate\Facades\DB;
 
 use App\Models\Project;
 use App\Models\User;
+
+
 
 use function PHPSTORM_META\map;
 
@@ -812,6 +815,123 @@ public function getPendingInstallationDetails($project_id)
         'project' => $project
     ]);
 }
+
+// public function updateProjectData(Request $request)
+// {
+//     try {
+//         $request->validate([
+//             'project_id' => 'required|exists:projects,id',
+//             'project' => 'required|array',
+//         ]);
+
+//         $project = Project::findOrFail($request->input('project_id'));
+
+//         // Update Project fields
+//         $project->update($request->input('project'));
+
+//         // If ongrid
+//         if ($project->type == 'ongrid' && $request->has('on_grid')) {
+//             $onGrid = $project->onGrid;
+//             if ($onGrid) {
+//                 $onGrid->update($request->input('on_grid'));
+//             }
+//         }
+
+//         // If offgrid
+//         if ($project->type == 'offgrid' && $request->has('off_grid_hybrid')) {
+//             $offGrid = $project->offGridHybrid;
+//             if ($offGrid) {
+//                 $offGrid->update($request->input('off_grid_hybrid'));
+//             }
+//         }
+
+//         return $this->success([
+//             'project' => $project->fresh(),
+//             'on_grid' => $project->onGrid,
+//             'off_grid_hybrid' => $project->offGridHybrid,
+//         ]);
+
+//     } catch (ValidationException $e) {
+//         return $this->error('', 'Validation failed', 422);
+//     } catch (Exception $e) {
+//         return $this->error('', 'Error updating project', 500);
+//     }
+// }
+public function updateProjectData(Request $request)
+{
+    try {
+        $request->validate([
+            'project_id' => 'required|exists:projects,id',
+            'project' => 'nullable|array',
+            'on_grid' => 'nullable|array',
+            'off_grid_hybrid' => 'nullable|array',
+        ]);
+
+        $project = Project::findOrFail($request->input('project_id'));
+        
+        // Update project data if provided
+        if ($request->has('project')) {
+            $projectData = $request->input('project');
+            
+            $project->update([
+                'project_installation_date' => $projectData['project_installation_date'] ?? null,
+                'system_on' => $projectData['system_on'] ?? null,
+                'remarks' => $projectData['remarks'] ?? null,
+                'service_rounds_in_agreement' => $projectData['service_rounds_in_agreement'] ?? 0,
+                'service_years_in_agreement' => $projectData['service_years_in_agreement'] ?? 0,
+                'project_address' => $projectData['project_address'] ?? null,
+                'longitude' => $projectData['longitude'] ?? null,
+                'lattitude' => $projectData['lattitude'] ?? null,
+                'neatest_town' => $projectData['neatest_town'] ?? null,
+                'no_of_panels' => $projectData['no_of_panels'] ?? null,
+            ]);
+        }
+
+        // Update on_grid data if provided
+        if ($request->has('on_grid') && $project->type == 'ongrid') {
+            $onGridData = $request->input('on_grid');
+            
+            if ($project->onGrid) {
+                $project->onGrid->update([
+                    'electricity_bill_name' => $onGridData['electricity_bill_name'] ?? null,
+                    'harmonic_meter' => $onGridData['harmonic_meter'] ?? null,
+                    'wifi_username' => $onGridData['wifi_username'] ?? null,
+                    'wifi_password' => $onGridData['wifi_password'] ?? null,
+                    'remarks' => $onGridData['remarks'] ?? null,
+                ]);
+            }
+        }
+
+        // Update off_grid_hybrid data if provided
+        if ($request->has('off_grid_hybrid') && ($project->type == 'offgrid' || $project->type == 'hybrid')) {
+            $offGridData = $request->input('off_grid_hybrid');
+            
+            if ($project->offGridHybrid) {
+                $project->offGridHybrid->update([
+                    'connection_type' => $offGridData['connection_type'] ?? null,
+                    'remarks' => $offGridData['remarks'] ?? null,
+                    'wifi_username' => $offGridData['wifi_username'] ?? null,
+                    'wifi_password' => $offGridData['wifi_password'] ?? null,
+                ]);
+            }
+        }
+
+        // Reload the updated relationships
+        $project->load('onGrid', 'offGridHybrid');
+
+        return $this->success([
+            'project' => $project,
+            'on_grid' => $project->onGrid,
+            'off_grid_hybrid' => $project->offGridHybrid
+        ], 'Project updated successfully');
+
+    } catch (ValidationException $e) {
+        return $this->error($e->errors(), 'Validation failed', 422);
+    } catch (Exception $e) {
+        return $this->error($e->getMessage(), 'Error occurred', 500);
+    }
+}
+
 
 
 }

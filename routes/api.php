@@ -124,4 +124,5 @@ Route::get('/find-external-customer', [ExternalCustomerController::class, 'findE
 Route::get('/service-summary', [ServiceController::class, 'monthlySummary'])->middleware('auth:sanctum');
 Route::get('/service-summary/annual', [ServiceController::class, 'annualSummary'])->middleware('auth:sanctum');
 Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus'])->middleware('auth:sanctum');
+Route::post('/update-project', [ProjectController::class, 'updateProjectData'])->middleware('auth:sanctum');
 
