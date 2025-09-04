@@ -203,9 +203,9 @@ class ProjectController extends Controller
             'service_years_in_agreement' => 'required|integer|min:1',
             'service_rounds_in_agreement' => 'required|integer|min:1',
             'project_no' => 'required|string',
-            // 'project_installation_date' => 'required|date',
-            // 'longitude' => 'nullable|numeric',
-            // 'lattitude' => 'nullable|numeric',
+            'project_installation_date' => 'nullable|date',
+             'longitude' => 'nullable|numeric',
+            'lattitude' => 'nullable|numeric',
             // 'location' => 'nullable|string',
             // 'remarks' => 'nullable|string',
         ]);
@@ -225,10 +225,10 @@ class ProjectController extends Controller
             'panel_capacity' => $request->system_capacity,
             'service_years_in_agreement' => $request->service_years_in_agreement,
             'service_rounds_in_agreement' => $request->service_rounds_in_agreement,
-            // 'project_installation_date' => $request->project_installation_date,
+             'project_installation_date' => $request->project_installation_date,
             // 'system_on' => now(), // or set it explicitly
-            // 'longitude' => $request->longitude,
-            // 'lattitude' => $request->lattitude,
+             'longitude' => $request->longitude,
+             'lattitude' => $request->lattitude,
             // 'location' => $request->location,
             // 'remarks' => $request->remarks,
         ]);
@@ -741,13 +741,17 @@ public function getPendingInstallationDetails($project_id)
         'service_years_in_agreement' => 'nullable|integer|min:1',
         'service_rounds_in_agreement' => 'nullable|integer|min:1',
         'project_no' => 'required|string',
+        'longitude' => 'nullable|numeric',
+        'lattitude' => 'nullable|numeric',
+        'installation_completed' => 'boolean',
+        'project_installation_date' => 'nullable|date',
+        'system_turned_on' => 'boolean',
+        'system_on_date' => 'nullable|date',
+        
 
         // external-specific
         'company_name' => 'nullable|string',
-        'installation_completed' => 'boolean',
-        'installation_date' => 'nullable|date',
-        'system_turned_on' => 'boolean',
-        'system_on_date' => 'nullable|date',
+
     ]);
 
     if ($request->type == 'on_grid') {
@@ -766,6 +770,8 @@ public function getPendingInstallationDetails($project_id)
         'panel_capacity' => $request->system_capacity,
         'service_years_in_agreement' => $request->service_years_in_agreement,
         'service_rounds_in_agreement' => $request->service_rounds_in_agreement,
+        'longitude' => $request->longitude,
+        'lattitude' => $request->lattitude,
 
         // 🔹 External/Internal column
         'External/Internal' => $request->company_name ? 'External' : 'Internal',
@@ -775,7 +781,7 @@ public function getPendingInstallationDetails($project_id)
 
         // 🔹 Installation Completed → isInstalled
         'isInstalled' => $request->installation_completed ?? false,
-        'installed_date_ocp' => $request->installation_completed ? $request->installation_date : null,
+        'project_installation_date' => $request->installation_completed ? $request->project_installation_date : null,
 
         // 🔹 System On mapping
         'system_on' => $request->system_turned_on ? $request->system_on_date : null,

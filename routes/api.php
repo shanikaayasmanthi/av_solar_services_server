@@ -125,4 +125,6 @@ Route::get('/service-summary', [ServiceController::class, 'monthlySummary'])->mi
 Route::get('/service-summary/annual', [ServiceController::class, 'annualSummary'])->middleware('auth:sanctum');
 Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus'])->middleware('auth:sanctum');
 Route::post('/update-project', [ProjectController::class, 'updateProjectData'])->middleware('auth:sanctum');
+Route::get('/services/notifications', [ServiceController::class, 'getDueNotifications'])->middleware('auth:sanctum');
+
 

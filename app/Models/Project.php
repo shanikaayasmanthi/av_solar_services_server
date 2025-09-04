@@ -18,7 +18,6 @@ class Project extends Model
         'customer_id',
         'type',
         'company_name',
-        'installed_date_ocp',
         'External/Internal',
         'project_name',
         'neatest_town',
@@ -34,7 +33,8 @@ class Project extends Model
         'location',
         'isInstalled',
         'remarks',
-        
+        'is_hold'
+
      ];
 
      public function customer()

@@ -1317,4 +1317,91 @@ public function monthlySummary(Request $request)
     ]);
 }
 
+
+
+public function getDueNotifications()
+{
+    $projects = Project::with(['service', 'onGrid', 'offGridHybrid'])->get();
+    $notifications = [];
+    $today = Carbon::today();
+
+    foreach ($projects as $project) {
+        // Skip if project is on hold
+        if ($project->is_hold == 1) {
+            continue;
+        }
+
+        // Read "External/Internal" column safely
+        // $projectType = strtolower($project['External/Internal'] ?? '');
+
+        $serviceYears = $project->service_years_in_agreement ?? 0;
+        $serviceRounds = $project->service_rounds_in_agreement ?? 0;
+
+        // Determine service interval and notify period
+        if ($serviceYears > 0 && $serviceRounds > 0) {
+            $totalMonths = $serviceYears * 12;
+            $intervalMonths = intval($totalMonths / $serviceRounds);
+            $notifyBeforeMonths = $intervalMonths == 12 ? 8 : ($intervalMonths == 6 ? 4 : intval($intervalMonths * 0.66));
+        } else {
+            // Only apply fallback for external projects
+             if ($project->{'External/Internal'} === 'External')
+ {
+                $intervalMonths = 12; // 1 year
+                $notifyBeforeMonths = 8;
+            } else {
+                // If internal without service years/rounds → skip
+                continue;
+            }
+        }
+
+        // Get last service date or installation date
+        $lastService = $project->service()->latest('service_date')->first();
+
+        if ($lastService) {
+            $lastDate = Carbon::parse($lastService->service_date);
+            $nextRound = $lastService->service_round_no + 1;
+        } else {
+            $nextRound = 1;
+            $lastDate = Carbon::parse($project->project_installation_date);
+        }
+
+        // Calculate due/notify dates
+        $dueDate = $lastDate->copy()->addMonths($intervalMonths);
+        $notifyDate = $dueDate->copy()->subMonths($notifyBeforeMonths);
+
+        // Check if notification should be shown
+        if ($today->greaterThanOrEqualTo($notifyDate) && $today->lessThan($dueDate)) {
+            // Ensure no service already scheduled for this round
+            $alreadyScheduled = $project->service()
+                ->where('service_round_no', $nextRound)
+                ->exists();
+
+// Decide how to label the due service round
+if ($nextRound <= $serviceRounds) {
+    $roundLabel = $nextRound . ' (Free)';
+} else {
+    $paidRound = $nextRound - $serviceRounds;
+    $roundLabel = $paidRound . ' (Paid)';
+}
+
+$notifications[] = [
+    'project_id'   => $project->id,
+    'project_no'   => $project->onGrid->on_grid_project_id ?? $project->offGridHybrid->off_grid_hybrid_project_id ?? null,
+    'project_name' => $project->project_name,
+    'due_service_round' => $roundLabel, // send formatted label
+    'due_date'     => $dueDate->toDateString(),
+];
+        
+
+            
+        }
+    }
+
+    return response()->json([
+        'status' => 'success',
+        'notifications' => $notifications
+    ]);
+}
+
+
 }
