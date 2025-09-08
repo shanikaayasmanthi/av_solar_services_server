@@ -278,6 +278,7 @@ class ProjectController extends Controller
 
             $type = Str::lower($request->input('type'));
             $searchTerm =  $request->input('query', '');
+            $isHold = $request->input('is_hold');
            
 
             // if (!empty($searchTerm)) {
@@ -299,6 +300,14 @@ class ProjectController extends Controller
                         $offGridQuery->where('off_grid_hybrid_project_id', 'like', '%' . $searchTerm . '%');
                     });
                 });
+            }
+
+            if(!is_null($isHold)){
+                if($isHold){
+                    $query->where('is_hold', (int)$isHold);
+                }else {
+                    $query->where('is_hold', 0);
+                }
             }
 
             if($type==''){
@@ -342,6 +351,17 @@ class ProjectController extends Controller
             $count = Project::count();
             return $this->success([
                 'project_count' => $count
+            ]);
+        }catch (Exception $e) {
+            return $this->error('', 'Error occurred', 500);
+        }
+    }
+
+    public function getHoldProjectCount(){
+        try{
+            $count = Project::where('is_hold', true)->count();
+            return $this->success([
+                'hold_project_count' => $count
             ]);
         }catch (Exception $e) {
             return $this->error('', 'Error occurred', 500);
@@ -632,6 +652,7 @@ public function getPendingInstallationDetails($project_id)
 
             $type = Str::lower($request->input('type'));
             $searchTerm = $request->input('query', '');
+            $isHold = $request->input('is_hold');
 
             // Search functionality
             if (!empty($searchTerm)) {
@@ -660,12 +681,16 @@ public function getPendingInstallationDetails($project_id)
                 });
             }
 
+        if (!is_null($isHold)) {
+            $query->where('is_hold', (int) $isHold);
+        }
+
             // Filter by type
             if ($type && in_array($type, ['ongrid', 'offgrid', 'hybrid'])) {
                 $query->where('type', $type);
             }
 
-            $projects = $query->orderBy('created_at', 'desc')->paginate(6);
+            $projects = $query->orderBy('created_at', 'desc')->paginate(8);
 
             // Transform the response to include required fields
             $transformedProjects = $projects->getCollection()->map(function ($project) {
@@ -684,6 +709,7 @@ public function getPendingInstallationDetails($project_id)
                     'company_name' => $project->company_name,
                     'nearest_project' => $project->neatest_town,
                     'type' => $project->type,
+                    'is_hold' => $project->is_hold,
                     'project_address' => $project->project_address,
                     'installation_date' => $project->project_installation_date,
                     'customer' => $project->customer ? [
@@ -937,6 +963,131 @@ public function updateProjectData(Request $request)
         return $this->error($e->getMessage(), 'Error occurred', 500);
     }
 }
+
+public function holdProject($id) {
+    $project = Project::findOrFail($id); 
+    $project->is_hold = 1;
+    $project->save();
+
+    return $this->success(['message' => 'Project put on hold']);
+}
+
+public function releaseProject($id) {
+    $project = Project::findOrFail($id);
+    $project->is_hold = 0;
+    $project->save();
+
+    return $this->success(['message' => 'Project released']);
+}
+// For Internal Hold Projects
+public function getHoldProjects(Request $request)
+{
+    try {
+        $query = Project::with(['onGrid', 'offGridHybrid'])
+            ->where('External/Internal', 'Internal')
+            ->where('is_hold', 1);
+
+        $type = Str::lower($request->input('type'));
+        $searchTerm = $request->input('query', '');
+
+        if (!empty($searchTerm)) {
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('project_name', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('project_address', 'like', '%' . $searchTerm . '%')
+                  ->orWhereHas('onGrid', fn($onGrid) => 
+                      $onGrid->where('on_grid_project_id', 'like', '%' . $searchTerm . '%'))
+                  ->orWhereHas('offGridHybrid', fn($offGrid) => 
+                      $offGrid->where('off_grid_hybrid_project_id', 'like', '%' . $searchTerm . '%'));
+            });
+        }
+
+        if ($type && in_array($type, ['ongrid', 'offgrid', 'hybrid'])) {
+            $query->where('type', $type);
+        }
+
+        $projects = $query->orderBy('created_at', 'desc')->paginate(8);
+
+        return $this->success([
+            'projects' => $projects
+        ]);
+    } catch (Exception $e) {
+        return $this->error('', 'Error occurred: ' . $e->getMessage(), 500);
+    }
+}
+
+
+// For External Hold Projects
+public function getHoldExternalProjects(Request $request)
+{
+    try {
+        $query = Project::with(['onGrid', 'offGridHybrid', 'customer'])
+            ->where('External/Internal', 'External')
+            ->where('is_hold', 1);
+
+        $type = Str::lower($request->input('type'));
+        $searchTerm = $request->input('query', '');
+
+        if (!empty($searchTerm)) {
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('project_name', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('project_address', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('company_name', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('neatest_town', 'like', '%' . $searchTerm . '%')
+                  ->orWhereHas('onGrid', fn($onGrid) => 
+                      $onGrid->where('on_grid_project_id', 'like', '%' . $searchTerm . '%'))
+                  ->orWhereHas('offGridHybrid', fn($offGrid) => 
+                      $offGrid->where('off_grid_hybrid_project_id', 'like', '%' . $searchTerm . '%'))
+                  ->orWhereHas('customer', fn($customer) => 
+                      $customer->where('name', 'like', '%' . $searchTerm . '%')
+                               ->orWhere('email', 'like', '%' . $searchTerm . '%'));
+            });
+        }
+
+        if ($type && in_array($type, ['ongrid', 'offgrid', 'hybrid'])) {
+            $query->where('type', $type);
+        }
+
+        $projects = $query->orderBy('created_at', 'desc')->paginate(8);
+
+        // transform for external (keep same format)
+        $transformed = $projects->getCollection()->map(function ($project) {
+            $projectNo = null;
+            if ($project->type === 'ongrid' && $project->onGrid) {
+                $projectNo = $project->onGrid->on_grid_project_id;
+            } elseif (($project->type === 'offgrid' || $project->type === 'hybrid') && $project->offGridHybrid) {
+                $projectNo = $project->offGridHybrid->off_grid_hybrid_project_id;
+            }
+
+            return [
+                'id' => $project->id,
+                'project_no' => $projectNo,
+                'project_name' => $project->project_name,
+                'company_name' => $project->company_name,
+                'nearest_project' => $project->neatest_town,
+                'type' => $project->type,
+                'is_hold' => $project->is_hold,
+                'project_address' => $project->project_address,
+                'installation_date' => $project->project_installation_date,
+                'customer' => $project->customer ? [
+                    'name' => $project->customer->name,
+                    'email' => $project->customer->email
+                ] : null,
+                'on_grid_details' => $project->onGrid,
+                'off_grid_details' => $project->offGridHybrid
+            ];
+        });
+
+        $projects->setCollection($transformed);
+
+        return $this->success([
+            'projects' => $projects
+        ]);
+    } catch (Exception $e) {
+        return $this->error('', 'Error occurred: ' . $e->getMessage(), 500);
+    }
+}
+
+
 
 
 

@@ -19,6 +19,7 @@ use App\Http\Controllers\OnGridController;
 use App\Http\Controllers\OffGridHybridController;
 use App\Http\Controllers\ExternalCustomerController;
 use App\Http\Controllers\ExternalProjectController;
+use App\Http\Controllers\PaymentController;
 
 
 Route::get('/user', function (Request $request) {
@@ -126,5 +127,12 @@ Route::get('/service-summary/annual', [ServiceController::class, 'annualSummary'
 Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus'])->middleware('auth:sanctum');
 Route::post('/update-project', [ProjectController::class, 'updateProjectData'])->middleware('auth:sanctum');
 Route::get('/services/notifications', [ServiceController::class, 'getDueNotifications'])->middleware('auth:sanctum');
+Route::get('/get-hold-project-count', [ProjectController::class, 'getHoldProjectCount'])->middleware('auth:sanctum');
+Route::post('/projects/{id}/hold', [ProjectController::class, 'holdProject']);
+Route::post('/projects/{id}/release', [ProjectController::class, 'releaseProject']);
+Route::get('/hold-projects', [ProjectController::class, 'getHoldProjects'])->middleware('auth:sanctum');
+Route::get('/hold-external-projects', [ProjectController::class, 'getHoldExternalProjects'])->middleware('auth:sanctum');
+Route::get('/projects/{projectId}/payments', [PaymentController::class, 'getPayments'])->middleware('auth:sanctum');
+
 
 

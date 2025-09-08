@@ -67,8 +67,8 @@ class Project extends Model
       return $this->hasMany(Service::class);
      }
 
-   //   public function OutdoorWork()
-   //   {
-   //    return $this->hasMany(OutdoorWork::class);
-   //   }
+      public function payments()
+      {
+         return $this->hasMany(Payment::class);
+      }
 }
