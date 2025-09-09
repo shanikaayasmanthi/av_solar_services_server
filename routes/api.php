@@ -133,6 +133,10 @@ Route::post('/projects/{id}/release', [ProjectController::class, 'releaseProject
 Route::get('/hold-projects', [ProjectController::class, 'getHoldProjects'])->middleware('auth:sanctum');
 Route::get('/hold-external-projects', [ProjectController::class, 'getHoldExternalProjects'])->middleware('auth:sanctum');
 Route::get('/projects/{projectId}/payments', [PaymentController::class, 'getPayments'])->middleware('auth:sanctum');
+Route::get('/projects/payments', [PaymentController::class, 'getPaymentsWithProjects'])->middleware('auth:sanctum');
+Route::post('/projects/{project}/payments', [PaymentController::class, 'store'])->middleware('auth:sanctum');
+Route::put('/payments/{id}', [PaymentController::class, 'update'])->middleware('auth:sanctum');
+
 
 
 
