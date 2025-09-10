@@ -369,36 +369,38 @@ class ProjectController extends Controller
     }
 
     //get customer data for web
-    public function getCustomerData(Request $request){
-        try{
-
-            $request->validate([
+public function getCustomerData(Request $request) {
+    try {
+        $request->validate([
             'project_id' => 'required|exists:projects,id'
         ]);
-            log::info($request->input('project_id'));
-            $project = Project::with(['customer.customerPhoneNo'])->where('id', $request->input('project_id'))->first();
 
-            $userEmail = User::where('id', $project->customer->user_id)->value('email');
+        $project = Project::with(['customer.customerPhoneNo', 'customer.user'])
+            ->where('id', $request->input('project_id'))
+            ->first();
 
-            $customer = $project->customer;
-            $phoneNumbers = $project->customer->customerPhoneNo->pluck('phone_no')->toArray() ?? [];
-            unset($customer->customer_phone_no);
-            // $customer = $customer->toArray();
-            $customer->email = $userEmail;
-            $responseData = [
-                'customer' => $project->customer,
-                'phone_numbers' => $phoneNumbers,
-                
-            ];
+        $customer = $project->customer;
+        $phoneNumbers = $customer->customerPhoneNo->pluck('phone_no')->toArray() ?? [];
 
-            return $this->success($responseData);
+        $responseData = [
+            'customer' => [
+                'id' => $customer->id,
+                'name' => $customer->name,
+                'email' => $customer->user->email, // ✅ directly from relation
+                'address' => $customer->address,
+            ],
+            'phone_numbers' => $phoneNumbers,
+        ];
 
-        }catch (ValidationException $e) {
-            return $this->error('', 'Validation Error', 404);
-        } catch (Exception $e) {
-            return $this->error('', 'Error occurred', 500);
-        }
+        return $this->success($responseData);
+
+    } catch (ValidationException $e) {
+        return $this->error('', 'Validation Error', 404);
+    } catch (Exception $e) {
+        return $this->error('', 'Error occurred', 500);
     }
+}
+
 
     //get project data for web
     public function getprojectData(Request $request){

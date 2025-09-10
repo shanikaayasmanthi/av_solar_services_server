@@ -43,37 +43,48 @@ class ServiceController extends Controller
                 ->where('service_done', false)
                 ->paginate($perPage);
 
-            $transformed = $paginated->getCollection()
-                ->map(function ($service) {
-                    $project = $service->project;
-                    if (!$project) return null;
+           $transformed = $paginated->getCollection()
+    ->map(function ($service) {
+        $project = $service->project;
+        if (!$project) return null;
 
-                    $project_no = null;
-                    if ($project->type == 'ongrid') {
-                        $project_no = $project->onGrid->on_grid_project_id ?? null;
-                    } else if ($project->type == 'offgrid') {
-                        $project_no = $project->offGridHybrid->off_grid_hybrid_project_id ?? null;
-                    }
+        $project_no = null;
+        if ($project->type == 'ongrid') {
+            $project_no = $project->onGrid->on_grid_project_id ?? null;
+        } else if ($project->type == 'offgrid') {
+            $project_no = $project->offGridHybrid->off_grid_hybrid_project_id ?? null;
+        }
 
-                    $supervisor_name = null;
-                    if ($service->supervisor_id) {
-                        $supervisor = \App\Models\User::find($service->supervisor_id);
-                        $supervisor_name = $supervisor ? $supervisor->name : null;
-                    }
+        $supervisor_name = null;
+        if ($service->supervisor_id) {
+            $supervisor = \App\Models\User::find($service->supervisor_id);
+            $supervisor_name = $supervisor ? $supervisor->name : null;
+        }
 
-                    $customer_name = $project->customer ? $project->customer->name : null;
+        $customer_name = $project->customer ? $project->customer->name : null;
 
-                    return [
-                        'project_no' => $project_no,
-                        'customer_name' => $customer_name,
-                        'service_round' => $service->service_round_no ?? null,
-                        'service_date' => $service->service_date ?? null,
-                        'service_time' => $service->service_time ?? null,
-                        'supervisors' => $supervisor_name ? [$supervisor_name] : [],
-                    ];
-                })
-                ->filter()
-                ->values();
+        // ✅ Decide Free or Paid safely
+        $serviceType = null;
+        if ($service->service_round_no && $project->service_rounds_in_agreement) {
+            $serviceType = $service->service_round_no <= $project->service_rounds_in_agreement
+                ? 'Free'
+                : 'Paid';
+        }
+
+        return [
+            'project_no' => $project_no,
+            'customer_name' => $customer_name,
+            'service_round' => $service->service_round_no ?? null,
+            'service_type' => $serviceType,
+            'service_date' => $service->service_date 
+                ? \Carbon\Carbon::parse($service->service_date)->format('Y-m-d')
+                : null,
+            'service_time' => $service->service_time ?? null,
+            'supervisors' => $supervisor_name ? [$supervisor_name] : [],
+        ];
+    })
+    ->filter()
+    ->values();
 
             $paginated->setCollection($transformed);
 
@@ -145,11 +156,16 @@ class ServiceController extends Controller
                 'project_id' => 'required|exists:projects,id',
             ]);
 
+            $project = Project::with('customer')->findOrFail($request->project_id);
+
             $services = Service::where('project_id', $request->project_id)
                 ->where('service_done', true)
                 ->orderBy('service_date', 'asc')
                 ->get()
-                ->map(function ($service) {
+                ->map(function ($service) use ($project) {
+                // Decide if free or paid
+                $isFree = $service->service_round_no <= $project->service_rounds_in_agreement;
+                $serviceType = $isFree ? 'Free' : 'Paid';
                     return [
                         'service_id' => $service->id,
                         'project_id' => $service->project_id,
@@ -157,6 +173,7 @@ class ServiceController extends Controller
                         'customer_name' => $service->project->customer->name ?? null,
                         'nearest_town' => $service->project->neatest_town ?? null,
                         'service_round' => $service->service_round_no,
+                        'service_type' => $serviceType,
                         'service_date' => $service->service_date,
                         'service_time' => $service->service_time,
                         'remarks' => $service->remarks,
