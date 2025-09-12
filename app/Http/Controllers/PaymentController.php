@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Payment;
 use App\Models\Project;
+use Illuminate\Support\Facades\Log;
 
 
 class PaymentController extends Controller
@@ -195,6 +196,14 @@ public function store(Request $request, $projectId)
             'payment_notes' => $request->notes ?? null,
         ]);
 
+            Log::channel('payments')->info('Payment created', [
+            'user_id'    => auth()->id(),
+            'user_name'  => auth()->user()->name ?? 'system',   
+            'project_id' => $projectId,
+            'payment_id' => $payment->id,
+            'data'       => $payment->toArray(),
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Payment created successfully',
@@ -222,11 +231,23 @@ public function update(Request $request, $id)
             'notes' => 'nullable|string|max:500'
         ]);
 
+         $oldData = $payment->toArray();
+
         $payment->update([
             'total_payment' => $request->total,
             'paid_amount' => $request->paid,
             'due_payment' => $request->due,
             'payment_notes' => $request->notes ?? $payment->payment_notes,
+        ]);
+
+                // Log the update
+        Log::info('Payment updated', [
+            'payment_id' => $payment->id,
+            'project_id' => $payment->project_id,
+            'updated_by' => auth()->user()->id ?? 'system',
+            'user_name'  => auth()->user()->name ?? 'system',
+            'old_values' => $oldData,
+            'new_values' => $payment->toArray(),
         ]);
 
         return response()->json([

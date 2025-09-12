@@ -270,4 +270,172 @@ public function updateSupervisorProfile(Request $request, $userId)
     }
 }
 
+public function getProfile($userId)
+{
+    try {
+        // Add authentication check
+        $authenticatedUser = auth()->user();
+        if (!$authenticatedUser || $authenticatedUser->id != $userId) {
+            return $this->error('', 'Unauthorized access', 403);
+        }
+
+        $user = User::with('userType', 'admin')->find($userId);
+
+        if (!$user) {
+            return $this->error('', 'User not found', 404);
+        }
+
+        $profileData = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'user_type' => $user->userType->name ?? 'Unknown',
+            //'profile_photo' => null,
+        ];
+
+        // Add admin-specific fields for admin and super admin
+        if (in_array(strtolower($user->userType->name), ['admin', 'super admin']) && $user->admin) {
+            $profileData['phone'] = $user->admin->phone;
+            $profileData['nic'] = $user->admin->nic;
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Profile retrieved successfully',
+            'data' => [
+                'profile' => $profileData
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Server Error',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+public function updateProfile(Request $request, $userId)
+{
+    try {
+        // Authentication check
+        $authenticatedUser = auth()->user();
+        if (!$authenticatedUser || $authenticatedUser->id != $userId) {
+            return $this->error('', 'Unauthorized access', 403);
+        }
+
+        $user = User::with('userType', 'admin')->find($userId);
+        if (!$user) {
+            return $this->error('', 'User not found', 404);
+        }
+
+        // Base validation rules
+        $rules = [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $userId,
+        ];
+
+        // Add admin-specific validation if user is admin/super admin
+        if (in_array(strtolower($user->userType->name), ['admin', 'super admin'])) {
+            $rules['phone'] = 'required|string|max:15';
+            $rules['nic'] = 'required|string|max:20';
+        }
+
+        $validated = $request->validate($rules);
+
+        // Update user data
+        $user->update([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+        ]);
+
+        // Update admin-specific data if applicable
+        if (in_array(strtolower($user->userType->name), ['admin', 'super admin']) && $user->admin) {
+            $user->admin->update([
+                'phone' => $validated['phone'],
+                'nic' => $validated['nic'],
+            ]);
+        }
+
+        // Fetch updated data
+        $user->refresh()->load('userType', 'admin');
+
+        $profileData = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'user_type' => $user->userType->name ?? 'Unknown',
+        ];
+
+        if (in_array(strtolower($user->userType->name), ['admin', 'super admin']) && $user->admin) {
+            $profileData['phone'] = $user->admin->phone;
+            $profileData['nic'] = $user->admin->nic;
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Profile updated successfully',
+            'data' => [
+                'profile' => $profileData
+            ]
+        ]);
+
+    } catch (ValidationException $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Validation failed',
+            'errors' => $e->errors()
+        ], 422);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Server Error',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
+public function changePassword(Request $request)
+{
+    try {
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:8|confirmed',
+        ]);
+
+        $user = auth()->user();
+
+        // Check if current password matches
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Current password is incorrect'
+            ], 422);
+        }
+
+        // Update password
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password changed successfully'
+        ]);
+
+    } catch (ValidationException $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Validation failed',
+            'errors' => $e->errors()
+        ], 422);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Server Error',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
+
 }

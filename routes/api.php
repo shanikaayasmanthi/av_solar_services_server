@@ -136,6 +136,11 @@ Route::get('/projects/{projectId}/payments', [PaymentController::class, 'getPaym
 Route::get('/projects/payments', [PaymentController::class, 'getPaymentsWithProjects'])->middleware('auth:sanctum');
 Route::post('/projects/{project}/payments', [PaymentController::class, 'store'])->middleware('auth:sanctum');
 Route::put('/payments/{id}', [PaymentController::class, 'update'])->middleware('auth:sanctum');
+Route::get('/profile/{userId}', [UserController::class, 'getProfile'])->middleware('auth:sanctum');
+Route::put('/profile/{userId}', [UserController::class, 'updateProfile'])->middleware('auth:sanctum');
+Route::post('/change-password', [UserController::class, 'changePassword'])->middleware('auth:sanctum');
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 
 
