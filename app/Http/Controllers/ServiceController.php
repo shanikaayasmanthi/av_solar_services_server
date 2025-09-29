@@ -63,7 +63,7 @@ class ServiceController extends Controller
 
         $customer_name = $project->customer ? $project->customer->name : null;
 
-        // ✅ Decide Free or Paid safely
+        // Decide Free or Paid safely
         $serviceType = null;
         if ($service->service_round_no && $project->service_rounds_in_agreement) {
             $serviceType = $service->service_round_no <= $project->service_rounds_in_agreement
@@ -478,8 +478,8 @@ class ServiceController extends Controller
     {
         try {
 
-            $firstServiceCount = Service::where('service_round_no', 1)->count();
-            $secondServiceCount = Service::where('service_round_no', 2)->count();
+            $firstServiceCount = Service::where('service_round_no', 1)->where('service_done', 1)->where('service_type', 'free')->count();
+            $secondServiceCount = Service::where('service_round_no', 2)->where('service_done', 1)->where('service_type', 'free')->count();
 
             return $this->success([
                 'first_service_count' => $firstServiceCount,
@@ -1407,6 +1407,7 @@ $notifications[] = [
     'project_name' => $project->project_name,
     'due_service_round' => $roundLabel, // send formatted label
     'due_date'     => $dueDate->toDateString(),
+    'nearest_town' => $project->neatest_town,
 ];
         
 
