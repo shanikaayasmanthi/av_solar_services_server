@@ -11,68 +11,64 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string',
-            'email' => 'required|email|unique:users',
-            'address' => 'required|string',
-            'phone_numbers' => 'required|array|min:1',
-            'phone_numbers.*' => 'required|string|distinct|min:5|max:20'
+public function store(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string',
+        'email' => 'required|email|unique:users',
+        'address' => 'required|string',
+        'phone_numbers' => 'required|array|min:1',
+        'phone_numbers.*' => 'required|string|distinct|min:5|max:20'
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make('user123'),
+            'user_type_id' => 3 
         ]);
 
-        DB::beginTransaction();
+        $customer = Customer::create([
+            'user_id' => $user->id,
+            'name' => $request->name,
+            'address' => $request->address,
+        ]);
 
-        try {
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make('user123'), // default password
-                'user_type_id' => 3 
-            ]);
-
-            // 2. Create customer record
-            $customer = Customer::create([
-                'user_id' => $user->id,
-                'name' => $request->name,
-                'address' => $request->address,
-                // 'phone' => $request->phone
-            ]);
-
-            if(!$customer){
-                throw new \Exception('Customer creation failed');
-            }
-
-            // 3. Create phone numbers
-            $phoneNumbersToInsert = [];
-            foreach ($request->phone_numbers as $phoneNumber) {
-                // You might want to sanitize/format phone numbers here
-                $phoneNumbersToInsert[] = [
-                    'customer_id' => $customer->id,
-                    'phone_no' => $phoneNumber,
-                    'created_at' => now(), 
-                    'updated_at' => now(), 
-                ];
-            }
-            if (!empty($phoneNumbersToInsert)) {
-                CustomerPhoneNo::insert($phoneNumbersToInsert);
-            }
-            DB::commit();
-
-            return response()->json([
-                'message' => 'Customer created successfully.',
-                'customer' => $customer
-            ], 201);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'message' => 'Error creating customer',
-                'error' => $e->getMessage()
-            ], 500);
+        if(!$customer){
+            throw new \Exception('Customer creation failed');
         }
+
+        // Create phone numbers with proper timestamp handling
+        foreach ($request->phone_numbers as $phoneNumber) {
+            CustomerPhoneNo::create([
+                'customer_id' => $customer->user_id, // Use user_id as customer_id
+                'phone_no' => $phoneNumber,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+        
+        DB::commit();
+
+        return response()->json([
+            'message' => 'Customer created successfully.',
+            'customer' => $customer,
+            'user_id' => $user->id
+        ], 201);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Customer creation error: ' . $e->getMessage());
+        
+        return response()->json([
+            'message' => 'Error creating customer',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
 
     public function find(Request $request) {
     $keyword = $request->input('keyword');
@@ -161,5 +157,136 @@ class CustomerController extends Controller
     }
 }
 
+ //Get customer details for non-installed projects
+
+public function getCustomersForNonInstalledProjects(Request $request)
+{
+    try {
+       
+        $request->validate([
+            'project_id' => 'nullable|exists:projects,id',
+            'customer_id' => 'nullable|exists:customers,user_id'
+        ]);
+
+        
+        $query = Project::with([
+                'customer.user', 
+                'customer.customerPhoneNo'
+            ])
+            ->where('isInstalled', false);
+
+        
+        if ($request->has('project_id')) {
+            $query->where('id', $request->project_id);
+        }
+
+        if ($request->has('customer_id')) {
+            $query->where('customer_id', $request->customer_id);
+        }
+
+    
+        $projects = $query->get();
+
+        if ($projects->isEmpty()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'No non-installed projects found',
+                'customers' => []
+            ]);
+        }
+
+        
+        $customers = $projects->map(function ($project) {
+            return [
+                'project_id' => $project->id,
+                'project_name' => $project->project_name,
+                'customer_id' => $project->customer_id,
+                'customer_name' => $project->customer->name ?? $project->customer->user->name,
+                'email' => $project->customer->user->email,
+                'address' => $project->customer->address,
+                'telephone_numbers' => $project->customer->customerPhoneNo->pluck('phone_no')->toArray()
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'customers' => $customers
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Failed to retrieve customer details',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+} public function updateCustomerDetails(Request $request)
+{
+    $request->validate([
+        'project_id' => 'required|exists:projects,id',
+        'name' => 'required|string|max:255',
+        'email' => 'required|email',
+        'address' => 'required|string',
+        'phone_numbers' => 'required|array|min:1',
+        'phone_numbers.*' => 'required|string|min:5|max:20'
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+    
+        $project = Project::with('customer.user', 'customer.customerPhoneNo')
+                        // ->where('isInstalled', false)
+                        ->findOrFail($request->project_id);
+
+        
+        $project->customer->user->update([
+            'name' => $request->name,
+            'email' => $request->email
+        ]);
+
+        
+        $project->customer->update([
+            'name' => $request->name,
+            'address' => $request->address
+        ]);
+
+        // Update phone numbers - delete old and create new
+        $project->customer->customerPhoneNo()->delete();
+        
+        $phoneNumbers = [];
+        foreach ($request->phone_numbers as $phone) {
+            $phoneNumbers[] = [
+                'customer_id' => $project->customer_id,
+                'phone_no' => $phone,
+                'created_at' => now(),
+                'updated_at' => now()
+            ];
+        }
+        CustomerPhoneNo::insert($phoneNumbers);
+
+        DB::commit();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Customer details updated successfully',
+            'customer' => [
+                'project_id' => $project->id,
+                'customer_name' => $request->name,
+                'email' => $request->email,
+                'address' => $request->address,
+                'telephone_numbers' => $request->phone_numbers
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Failed to update customer details',
+            'error' => $e->getMessage()
+        ], 500);
+    }
 }
-//das
+
+}

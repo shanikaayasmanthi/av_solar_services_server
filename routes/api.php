@@ -15,6 +15,11 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserTypeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\OnGridController;
+use App\Http\Controllers\OffGridHybridController;
+use App\Http\Controllers\ExternalCustomerController;
+use App\Http\Controllers\ExternalProjectController;
+use App\Http\Controllers\PaymentController;
 
 
 Route::get('/user', function (Request $request) {
@@ -39,6 +44,13 @@ Route::post('/sup/get_service_ProjectNo',[ServiceController::class,'getProjectNo
 Route::post('/sup/get_customer',[ProjectController::class,'getCustomer'])->middleware('auth:sanctum');
 Route::post('/sup/get_project',[ProjectController::class,'getprojectDetails'])->middleware('auth:sanctum');
 Route::post('/sup/save_service_data',[ServiceController::class,'saveServiceDetails'])->middleware('auth:sanctum');
+Route::post('/services/today-summary', [ServiceController::class, 'getTodayServiceSummary'])->middleware('auth:sanctum');
+Route::post('/services/today-completed', [ServiceController::class, 'getTodayCompletedServices'])->middleware('auth:sanctum');
+Route::post('/services/get-details-for-edit', [ServiceController::class, 'getServiceDetailsForEdit'])->middleware('auth:sanctum');
+Route::post('/services/update-details', [ServiceController::class, 'updateServiceDetails'])->middleware('auth:sanctum');
+Route::get('/supervisor-profile/{userId}', [UserController::class, 'getSupervisorProfile']);
+Route::post('/update-supervisor-profile/{id}', [UserController::class, 'updateSupervisorProfile']);
+
 
 // get project location
 Route::get('/project-location/{id}', [ProjectController::class, 'getLocation'])->middleware('auth:sanctum');
@@ -62,7 +74,7 @@ Route::get('/dc/details-by-service-id', [DCController::class, 'getDCServiceDetai
 //get service AC details by service-id
 Route::get('/ac/details-by-service-id', [ACController::class, 'getACServiceDetailsByServiceId'])->middleware('auth:sanctum');
 
-Route::post('/project/location-capacity', [ProjectController::class, 'getProjectLocationAndCapacity'])->middleware('auth:sanctum');
+Route::get('/project/location-capacity', [ProjectController::class, 'getProjectLocationAndCapacity'])->middleware('auth:sanctum');
 
 Route::get('/roof-work/details', [RoofWorkController::class, 'getRoofWorkDetailsByServiceId'])->middleware('auth:sanctum');
 
@@ -74,8 +86,10 @@ Route::post('/service/technicians', [ServiceController::class, 'getTechniciansBy
 
 Route::post('/addcustomer', [CustomerController::class, 'store'])->middleware('auth:sanctum');
 Route::post('/openproject', [ProjectController::class, 'openProject'])->middleware('auth:sanctum');
+Route::post('/open-external-project', [ProjectController::class, 'openExternalProject'])->middleware('auth:sanctum');
 Route::get('/find-customer', [CustomerController::class, 'find'])->middleware('auth:sanctum');
 Route::get('/get-projects', [ProjectController::class, 'getAllProjects'])->middleware('auth:sanctum');
+Route::get('/external-projects', [ProjectController::class, 'getExternalProjects'])->middleware('auth:sanctum');
 Route::get('/get-project', [ProjectController::class, 'getprojectData'])->middleware('auth:sanctum');
 Route::get('/get-customer', [ProjectController::class, 'getCustomerData'])->middleware('auth:sanctum');
 Route::get('/get-project-count',[ProjectController::class,'getProjectCount'])->middleware('auth:sanctum');
@@ -96,4 +110,38 @@ Route::get('/get-service-details-by-id',[ServiceController::class,'getServiceDet
 Route::get('/users', [UserController::class, 'getAllUsersWithTypeAndStatus'])->middleware('auth:sanctum');
 Route::get('/user-types', [UserTypeController::class, 'index'])->middleware('auth:sanctum');
 Route::post('/users', [UserController::class, 'store']);
+Route::get('/projects/non-installed', [ProjectController::class, 'getNonInstalledProjects'])->middleware('auth:sanctum');
+Route::get('/customers/non-installed', [CustomerController::class, 'getCustomersForNonInstalledProjects'])->middleware('auth:sanctum');
+Route::post('/projects/ongrid', [OnGridController::class, 'store']);
+Route::post('/projects/offgrid', [OffGridHybridController::class, 'store']);
+Route::post('/change-batteries',[BatteryController::class,'changeBatteries'])->middleware('auth:sanctum');
+Route::post('/save-batteries', [BatteryController::class, 'storeBatteries'])->middleware('auth:sanctum');
+Route::put('/projects/{project_id}/installation', [ProjectController::class, 'updateInstallationDetails'])->middleware('auth:sanctum');
+Route::get('/projects/{project_id}/pending-installation', [ProjectController::class, 'getPendingInstallationDetails'])->middleware('auth:sanctum');
+Route::post('/add-batteries', [BatteryController::class, 'addBatteries'])->middleware('auth:sanctum');
+Route::put('/customers/update-details', [CustomerController::class, 'updateCustomerDetails'])->middleware('auth:sanctum');
+Route::post('/add-external-customers', [ExternalCustomerController::class, 'store'])->middleware('auth:sanctum');
+Route::get('/find-external-customer', [ExternalCustomerController::class, 'findExternalCustomer'])->middleware('auth:sanctum');
+Route::get('/service-summary', [ServiceController::class, 'monthlySummary'])->middleware('auth:sanctum');
+Route::get('/service-summary/annual', [ServiceController::class, 'annualSummary'])->middleware('auth:sanctum');
+Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus'])->middleware('auth:sanctum');
+Route::post('/update-project', [ProjectController::class, 'updateProjectData'])->middleware('auth:sanctum');
+Route::get('/services/notifications', [ServiceController::class, 'getDueNotifications'])->middleware('auth:sanctum');
+Route::get('/get-hold-project-count', [ProjectController::class, 'getHoldProjectCount'])->middleware('auth:sanctum');
+Route::post('/projects/{id}/hold', [ProjectController::class, 'holdProject']);
+Route::post('/projects/{id}/release', [ProjectController::class, 'releaseProject']);
+Route::get('/hold-projects', [ProjectController::class, 'getHoldProjects'])->middleware('auth:sanctum');
+Route::get('/hold-external-projects', [ProjectController::class, 'getHoldExternalProjects'])->middleware('auth:sanctum');
+Route::get('/projects/{projectId}/payments', [PaymentController::class, 'getPayments'])->middleware('auth:sanctum');
+Route::get('/projects/payments', [PaymentController::class, 'getPaymentsWithProjects'])->middleware('auth:sanctum');
+Route::post('/projects/{project}/payments', [PaymentController::class, 'store'])->middleware('auth:sanctum');
+Route::put('/payments/{id}', [PaymentController::class, 'update'])->middleware('auth:sanctum');
+Route::get('/profile/{userId}', [UserController::class, 'getProfile'])->middleware('auth:sanctum');
+Route::put('/profile/{userId}', [UserController::class, 'updateProfile'])->middleware('auth:sanctum');
+Route::post('/change-password', [UserController::class, 'changePassword'])->middleware('auth:sanctum');
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
+
+
 

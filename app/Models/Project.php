@@ -17,6 +17,8 @@ class Project extends Model
      protected $fillable = [
         'customer_id',
         'type',
+        'company_name',
+        'External/Internal',
         'project_name',
         'neatest_town',
         'project_address',
@@ -29,8 +31,10 @@ class Project extends Model
         'longitude',
         'lattitude',
         'location',
+        'isInstalled',
         'remarks',
-        
+        'is_hold'
+
      ];
 
      public function customer()
@@ -63,8 +67,8 @@ class Project extends Model
       return $this->hasMany(Service::class);
      }
 
-   //   public function OutdoorWork()
-   //   {
-   //    return $this->hasMany(OutdoorWork::class);
-   //   }
+      public function payments()
+      {
+         return $this->hasMany(Payment::class);
+      }
 }

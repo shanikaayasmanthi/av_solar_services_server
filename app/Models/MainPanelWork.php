@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class MainPanelWork extends Model
 {
+
+    use HasFactory;
     protected $table = 'main_panel_works';
 
      /**
@@ -58,7 +61,7 @@ class MainPanelWork extends Model
         'router_serial_number_comments',
         'took_photos',
         'took_photos_comments',
-        'images'
+        'images' 
      ];
 
       public function service()
