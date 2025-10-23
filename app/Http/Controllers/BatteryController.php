@@ -147,8 +147,5 @@ public function addBatteries(Request $request)
             'message' => $e->getMessage()
         ], 500);
     }
-}
-
-
-    
+}   
 }

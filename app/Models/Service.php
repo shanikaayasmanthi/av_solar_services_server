@@ -70,9 +70,6 @@ class Service extends Model
        {
          return $this->belongsTo(Supervisor::class , 'supervisor_id', 'user_id');
        }
-
-
-       
 }
 
 

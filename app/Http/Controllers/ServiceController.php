@@ -18,13 +18,11 @@ use Illuminate\Support\Facades\Log;
 
 use function PHPSTORM_META\map;
 use function PHPUnit\Framework\isEmpty;
-//use Carbon\Carbon;
+
 
 class ServiceController extends Controller
 {
     use HttpResponses;
-
-
 
     // Get all scheduled services that are not yet completed 
 
@@ -103,7 +101,6 @@ class ServiceController extends Controller
     public function getProjectsWithCompletedServices(Request $request)
     {
         try {
-
 
             $projectIds = Service::where('service_done', true)
                 ->pluck('project_id')
@@ -341,6 +338,7 @@ class ServiceController extends Controller
             return $this->error('', $e->getMessage(), 500);
         }
     }
+
     //save service data
     public function saveServiceDetails(Request $request)
     {
@@ -383,7 +381,6 @@ class ServiceController extends Controller
                 ]);
             }
         }
-
 
         // Save DC
         if (isset($serviceData->dc)) {
@@ -794,13 +791,10 @@ public function getServiceDetailsForEdit(Request $request)
             $projectNo = $service->project->offGridHybrid->off_grid_hybrid_project_id;
         }
 
-
-  
-
         $response = [
             'mainData' => [
-                'longitude' =>  $service->project->longitude ?? null, // Not returned by your model, add if needed
-                'latitude' =>  $service->project->lattitude ?? null,  // Not returned by your model, add if needed
+                'longitude' =>  $service->project->longitude ?? null, 
+                'latitude' =>  $service->project->lattitude ?? null,  
                 'power' => $service->power,
                 'time' => $service->power_time 
                  ? \Carbon\Carbon::parse($service->power_time)->format('H:i:s') : null,
@@ -1334,8 +1328,6 @@ public function monthlySummary(Request $request)
     ]);
 }
 
-
-
 public function getDueNotifications()
 {
     $projects = Project::with(['service', 'onGrid', 'offGridHybrid'])->get();
@@ -1409,9 +1401,7 @@ $notifications[] = [
     'due_date'     => $dueDate->toDateString(),
     'nearest_town' => $project->neatest_town,
 ];
-        
-
-            
+               
         }
     }
 
@@ -1420,6 +1410,5 @@ $notifications[] = [
         'notifications' => $notifications
     ]);
 }
-
 
 }

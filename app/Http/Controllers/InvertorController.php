@@ -89,6 +89,4 @@ class InvertorController extends Controller
             return $this->error('Server Error', $e, 500);
         }
     }
-
-
 }

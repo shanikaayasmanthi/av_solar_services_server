@@ -2,15 +2,11 @@
 
 namespace App\Http\Controllers;
 
-
 use App\Models\RoofWork;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Exception;
-
-
-
 
 
 class RoofWorkController extends Controller
@@ -60,9 +56,6 @@ public function saveServiceRoofWorkData($serviceId, $roofWorkData)
         throw $e;
     }
 }
-
-
-
 
     public function getRoofWorkDetailsByServiceId(Request $request)
 {
