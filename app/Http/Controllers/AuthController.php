@@ -188,17 +188,20 @@ public function forgotPassword(Request $request) {
                            ]
                          ); 
                          
-                         // Build reset URL (frontend must have route that accepts token + email)
-                          $frontendResetUrl = config('app.frontend_url') ?? 
-                          env('FRONTEND_URL', null); 
-                          if (!$frontendResetUrl) {
-                            
-                            // fallback to same site route if you host frontend in the same app
-                             $frontendResetUrl = config('app.url');
-                             }
-                             
-                             // include plain token in link — this is the only place the plain token travels (via email)
-                              $resetUrl = rtrim($frontendResetUrl, '/') . '/reset-password?token=' . urlencode($plainToken) . '&email=' . urlencode($email);
+    // Detect if request came from mobile app
+    $isMobileApp = $request->header('User-Agent') && 
+                   str_contains(strtolower($request->header('User-Agent')), 'flutter');
+    
+    if ($isMobileApp) {
+        $frontendResetUrl = config('app.mobile_deep_link') ?? 
+                           env('MOBILE_DEEP_LINK', 'yourapp://reset-password');
+        // Generate deep link for mobile
+        $resetUrl = $frontendResetUrl . '?token=' . urlencode($plainToken) . '&email=' . urlencode($email);
+    } else {
+        // Web reset URL (existing logic)
+        $frontendResetUrl = config('app.frontend_url') ?? env('FRONTEND_URL', config('app.url'));
+        $resetUrl = rtrim($frontendResetUrl, '/') . '/reset-password?token=' . urlencode($plainToken) . '&email=' . urlencode($email);
+    }
                                // Send email (do not return token in API response)
                                 try {
                                      Mail::to($email)->send(new PasswordResetMail($resetUrl, $this->tokenExpiryMinutes));

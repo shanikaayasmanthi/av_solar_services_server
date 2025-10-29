@@ -375,10 +375,20 @@ class ServiceController extends Controller
             ]);
 
             if ($service->project) {
-                $service->project->update([
-                    'longitude' => isset($mainData->longitude) ? (double)$mainData->longitude : $service->project->longitude,
-                    'lattitude' => isset($mainData->latitude) ? (double)$mainData->latitude : $service->project->lattitude,
-                ]);
+                $projectUpdates = [];
+                
+                if (isset($mainData->longitude) && !empty(trim($mainData->longitude))) {
+                    $projectUpdates['longitude'] = (double)$mainData->longitude;
+                }
+                
+                if (isset($mainData->latitude) && !empty(trim($mainData->latitude))) {
+                    $projectUpdates['lattitude'] = (double)$mainData->latitude;
+                }
+                
+                // Only update if there are changes to make
+                if (!empty($projectUpdates)) {
+                    $service->project->update($projectUpdates);
+                }
             }
         }
 
