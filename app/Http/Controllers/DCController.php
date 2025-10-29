@@ -80,5 +80,4 @@ public function getDCServiceDetailsByServiceId(Request $request)
     return response()->json($service->dc);
 }
 
-
 }

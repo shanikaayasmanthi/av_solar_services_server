@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Http\Controllers; 
-
 use App\Models\OffGridHybrid;
 use App\Models\OnGrid;
 use App\Traits\HttpResponses;
@@ -11,11 +10,8 @@ use Illuminate\Validation\ValidationException;
 use Exception;
 use Illuminate\Support\Str;
 use Illuminate\Facades\DB;
-
 use App\Models\Project;
 use App\Models\User;
-
-
 
 use function PHPSTORM_META\map;
 
@@ -386,7 +382,7 @@ public function getCustomerData(Request $request) {
             'customer' => [
                 'id' => $customer->id,
                 'name' => $customer->name,
-                'email' => $customer->user->email, // ✅ directly from relation
+                'email' => $customer->user->email, // directly from relation
                 'address' => $customer->address,
             ],
             'phone_numbers' => $phoneNumbers,
@@ -400,7 +396,6 @@ public function getCustomerData(Request $request) {
         return $this->error('', 'Error occurred', 500);
     }
 }
-
 
     //get project data for web
     public function getprojectData(Request $request){
@@ -502,11 +497,8 @@ public function getProjectLocationAndCapacityApi(Request $request)
             return $this->error([], "Error occurred", 500);
         }
     }
-
-
-    
+   
 // Get non-installed projects
-
 public function getNonInstalledProjects(Request $request)
 {
     try {
@@ -644,101 +636,6 @@ public function getPendingInstallationDetails($project_id)
     }
 }
 
-    //  public function getExternalProjects(Request $request)
-    // {
-    //     try {
-
-    //     {
-    //         $query = Project::with(['onGrid', 'offGridHybrid', 'customer'])
-    //             ->where('External/Internal', 'External')
-    //             ->where('isInstalled', 1);
-
-
-    //         $type = Str::lower($request->input('type'));
-    //         $searchTerm = $request->input('query', '');
-    //         $isHold = $request->input('is_hold');
-
-    //         // Search functionality
-    //         if (!empty($searchTerm)) {
-    //             $query->where(function ($q) use ($searchTerm) {
-    //                 // Search in project fields
-    //                 $q->where('project_name', 'like', '%' . $searchTerm . '%')
-    //                   ->orWhere('project_address', 'like', '%' . $searchTerm . '%')
-    //                   ->orWhere('company_name', 'like', '%' . $searchTerm . '%')
-    //                   ->orWhere('neatest_town', 'like', '%' . $searchTerm . '%');
-
-    //                 // Search project_no in the related onGrid table
-    //                 $q->orWhereHas('onGrid', function ($onGridQuery) use ($searchTerm) {
-    //                     $onGridQuery->where('on_grid_project_id', 'like', '%' . $searchTerm . '%');
-    //                 });
-
-    //                 // Search project_no in the related offGridHybrid table
-    //                 $q->orWhereHas('offGridHybrid', function ($offGridQuery) use ($searchTerm) {
-    //                     $offGridQuery->where('off_grid_hybrid_project_id', 'like', '%' . $searchTerm . '%');
-    //                 });
-
-    //                 // Search in customer relationship if needed
-    //                 $q->orWhereHas('customer', function ($customerQuery) use ($searchTerm) {
-    //                     $customerQuery->where('name', 'like', '%' . $searchTerm . '%')
-    //                                  ->orWhere('email', 'like', '%' . $searchTerm . '%');
-    //                 });
-    //             });
-    //         }
-
-    //     if (!is_null($isHold)) {
-    //         $query->where('is_hold', (int) $isHold);
-    //     }
-
-    //         // Filter by type
-    //         if ($type && in_array($type, ['ongrid', 'offgrid', 'hybrid'])) {
-    //             $query->where('type', $type);
-    //         }
-
-    //         $projects = $query->orderBy('created_at', 'desc')->paginate(8);
-
-    //         // Transform the response to include required fields
-    //         $transformedProjects = $projects->getCollection()->map(function ($project) {
-    //             $projectNo = null;
-                
-    //             if ($project->type === 'ongrid' && $project->onGrid) {
-    //                 $projectNo = $project->onGrid->on_grid_project_id;
-    //             } elseif (($project->type === 'offgrid' || $project->type === 'hybrid') && $project->offGridHybrid) {
-    //                 $projectNo = $project->offGridHybrid->off_grid_hybrid_project_id;
-    //             }
-
-    //             return [
-    //                 'id' => $project->id,
-    //                 'project_no' => $projectNo,
-    //                 'project_name' => $project->project_name,
-    //                 'company_name' => $project->company_name,
-    //                 'nearest_project' => $project->neatest_town,
-    //                 'type' => $project->type,
-    //                 'is_hold' => $project->is_hold,
-    //                 'project_address' => $project->project_address,
-    //                 'installation_date' => $project->project_installation_date,
-    //                 'customer' => $project->customer ? [
-    //                     'name' => $project->customer->name,
-    //                     'email' => $project->customer->email
-    //                 ] : null,
-    //                 'on_grid_details' => $project->onGrid,
-    //                 'off_grid_details' => $project->offGridHybrid
-    //             ];
-    //         });
-
-    //         // Replace the original collection with transformed data
-    //         $projects->setCollection($transformedProjects);
-
-    //         return $this->success([
-    //             'projects' => $projects
-    //         ]);
-    //     }
-
-    //     } catch (ValidationException $e) {
-    //         return $this->error('', 'Validation Error', 404);
-    //     } catch (Exception $e) {
-    //         return $this->error('', 'Error occurred: ' . $e->getMessage(), 500);
-    //     }
-    // }
 public function getExternalProjects(Request $request)
 {
     try {
@@ -890,7 +787,6 @@ public function getExternalProjects(Request $request)
         'system_turned_on' => 'boolean',
         'system_on_date' => 'nullable|date',
         
-
         // external-specific
         'company_name' => 'nullable|string',
 
@@ -915,17 +811,17 @@ public function getExternalProjects(Request $request)
         'longitude' => $request->longitude,
         'lattitude' => $request->lattitude,
 
-        // 🔹 External/Internal column
+        // External/Internal column
         'External/Internal' => $request->company_name ? 'External' : 'Internal',
 
-        // 🔹 Company name
+        // Company name
         'company_name' => $request->company_name,
 
-        // 🔹 Installation Completed → isInstalled
+        // Installation Completed → isInstalled
         'isInstalled' => $request->installation_completed ?? false,
         'project_installation_date' => $request->installation_completed ? $request->project_installation_date : null,
 
-        // 🔹 System On mapping
+        // System On mapping
         'system_on' => $request->system_turned_on ? $request->system_on_date : null,
     ]);
 
@@ -964,47 +860,6 @@ public function getExternalProjects(Request $request)
     ]);
 }
 
-// public function updateProjectData(Request $request)
-// {
-//     try {
-//         $request->validate([
-//             'project_id' => 'required|exists:projects,id',
-//             'project' => 'required|array',
-//         ]);
-
-//         $project = Project::findOrFail($request->input('project_id'));
-
-//         // Update Project fields
-//         $project->update($request->input('project'));
-
-//         // If ongrid
-//         if ($project->type == 'ongrid' && $request->has('on_grid')) {
-//             $onGrid = $project->onGrid;
-//             if ($onGrid) {
-//                 $onGrid->update($request->input('on_grid'));
-//             }
-//         }
-
-//         // If offgrid
-//         if ($project->type == 'offgrid' && $request->has('off_grid_hybrid')) {
-//             $offGrid = $project->offGridHybrid;
-//             if ($offGrid) {
-//                 $offGrid->update($request->input('off_grid_hybrid'));
-//             }
-//         }
-
-//         return $this->success([
-//             'project' => $project->fresh(),
-//             'on_grid' => $project->onGrid,
-//             'off_grid_hybrid' => $project->offGridHybrid,
-//         ]);
-
-//     } catch (ValidationException $e) {
-//         return $this->error('', 'Validation failed', 422);
-//     } catch (Exception $e) {
-//         return $this->error('', 'Error updating project', 500);
-//     }
-// }
 public function updateProjectData(Request $request)
 {
     try {
@@ -1080,21 +935,6 @@ public function updateProjectData(Request $request)
     }
 }
 
-// public function holdProject($id) {
-//     $project = Project::findOrFail($id); 
-//     $project->is_hold = 1;
-//     $project->save();
-
-//     return $this->success(['message' => 'Project put on hold']);
-// }
-
-// public function releaseProject($id) {
-//     $project = Project::findOrFail($id);
-//     $project->is_hold = 0;
-//     $project->save();
-
-//     return $this->success(['message' => 'Project released']);
-// }
 
 public function holdProject($id, Request $request) {
     $project = Project::findOrFail($id); 
@@ -1233,9 +1073,5 @@ public function getHoldExternalProjects(Request $request)
         return $this->error('', 'Error occurred: ' . $e->getMessage(), 500);
     }
 }
-
-
-
-
 
 }

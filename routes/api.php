@@ -54,7 +54,6 @@ Route::post('/update-supervisor-profile/{id}', [UserController::class, 'updateSu
 
 // get project location
 Route::get('/project-location/{id}', [ProjectController::class, 'getLocation'])->middleware('auth:sanctum');
-//Route::get('/project-location/{project_id}', [ProjectController::class, 'getLocation']);
 
 //for get completed services summary
 Route::post('/sup/get_completed_services_by_project', [ServiceController::class, 'getCompletedServicesByProject'])->middleware('auth:sanctum');
