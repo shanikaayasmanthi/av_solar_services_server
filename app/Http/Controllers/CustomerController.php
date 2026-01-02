@@ -61,7 +61,7 @@ public function store(Request $request)
 
     } catch (\Exception $e) {
         DB::rollBack();
-        \Log::error('Customer creation error: ' . $e->getMessage());
+        // \Log::error('Customer creation error: ' . $e->getMessage());
         
         return response()->json([
             'message' => 'Error creating customer',
