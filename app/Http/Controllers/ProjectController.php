@@ -269,7 +269,10 @@ class ProjectController extends Controller
     {
         try {
 
-            $query = Project::with(['onGrid', 'offGridHybrid'])
+            $query = Project::with(['onGrid', 'offGridHybrid',
+            'payment' => function($q) {
+        $q->select('project_id', 'due_payment'); // Only fetch the due amount
+    }])
             ->where('External/Internal', 'Internal')
             ->where('isInstalled', 1);
 
@@ -308,7 +311,7 @@ class ProjectController extends Controller
             }
 
             if($type==''){
-                $projects = $query->orderBy('created_at', 'asc')->paginate(8);
+                $projects = $query->orderBy('created_at', 'asc')->paginate($request->input('per_page', 8));
 
                 
             }else{
@@ -316,6 +319,14 @@ class ProjectController extends Controller
                     ->orderBy('created_at', 'desc')
                     ->paginate(8);
             }
+
+
+            $serviceController = new ServiceController();
+            // Map through the projects to inject due service details
+        $projects->getCollection()->transform(function ($project) use ($serviceController) {
+            $project->next_service_date = $serviceController->getProjectDueDate($project->id);
+            return $project;
+        });
 
             
             return $this->success([
@@ -533,7 +544,7 @@ public function getNonInstalledProjects(Request $request)
                     'total_panels' => $project->no_of_panels
                 ];
             } catch (\Exception $e) {
-                \Log::error("Error processing project {$project->id}: " . $e->getMessage());
+                // Log::error("Error processing project {$project->id}: " . $e->getMessage());
                 return null;
             }
         })->filter(); 
@@ -546,7 +557,7 @@ public function getNonInstalledProjects(Request $request)
         ]);
 
     } catch (\Exception $e) {
-        \Log::error('API Error: ' . $e->getMessage());
+        // Log::error('API Error: ' . $e->getMessage());
         return response()->json([
             'status' => 'error',
             'message' => $e->getMessage(),
@@ -628,7 +639,7 @@ public function getPendingInstallationDetails($project_id)
             'message' => 'Project not found or already installed'
         ], 404);
     } catch (\Exception $e) {
-        \Log::error("Failed to fetch installation details: " . $e->getMessage());
+        // Log::error("Failed to fetch installation details: " . $e->getMessage());
         return response()->json([
             'status' => 'error',
             'message' => 'Failed to fetch installation details'
@@ -639,7 +650,7 @@ public function getPendingInstallationDetails($project_id)
 public function getExternalProjects(Request $request)
 {
     try {
-        \Log::info('External projects request received', [
+        Log::info('External projects request received', [
             'type' => $request->input('type'),
             'query' => $request->input('query'),
             'is_hold' => $request->input('is_hold')
@@ -655,7 +666,7 @@ public function getExternalProjects(Request $request)
 
         // Search functionality
         if (!empty($searchTerm)) {
-            \Log::info('Searching for: ' . $searchTerm);
+            Log::info('Searching for: ' . $searchTerm);
             $query->where(function ($q) use ($searchTerm) {
                 // Search in project fields
                 $q->where('project_name', 'like', '%' . $searchTerm . '%')
@@ -696,12 +707,12 @@ public function getExternalProjects(Request $request)
             $query->where('type', $type);
         }
 
-        \Log::info('About to execute pagination query');
+        Log::info('About to execute pagination query');
         $projects = $query->orderBy('created_at', 'desc')->paginate(8);
-        \Log::info('Pagination query executed successfully');
+        Log::info('Pagination query executed successfully');
 
         // Transform the response to include required fields
-        \Log::info('Starting data transformation');
+        Log::info('Starting data transformation');
         $transformedProjects = $projects->getCollection()->map(function ($project) {
             $projectNo = null;
             
@@ -732,18 +743,18 @@ public function getExternalProjects(Request $request)
 
         // Replace the original collection with transformed data
         $projects->setCollection($transformedProjects);
-        \Log::info('Data transformation completed successfully');
+        Log::info('Data transformation completed successfully');
 
         return $this->success([
             'projects' => $projects
         ]);
 
     } catch (ValidationException $e) {
-        \Log::error('Validation error in getExternalProjects: ' . $e->getMessage());
+        Log::error('Validation error in getExternalProjects: ' . $e->getMessage());
         return $this->error('', 'Validation Error', 404);
     } catch (Exception $e) {
-        \Log::error('Error in getExternalProjects: ' . $e->getMessage());
-        \Log::error('Stack trace: ' . $e->getTraceAsString());
+        Log::error('Error in getExternalProjects: ' . $e->getMessage());
+        Log::error('Stack trace: ' . $e->getTraceAsString());
         return $this->error('', 'Error occurred: ' . $e->getMessage(), 500);
     }
 }

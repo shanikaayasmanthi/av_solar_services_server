@@ -67,8 +67,8 @@ class Project extends Model
       return $this->hasMany(Service::class);
      }
 
-      public function payments()
+      public function payment()
       {
-         return $this->hasMany(Payment::class);
+         return $this->hasOne(Payment::class);
       }
 }

@@ -15,6 +15,7 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 use function PHPSTORM_META\map;
 use function PHPUnit\Framework\isEmpty;
@@ -206,16 +207,16 @@ class ServiceController extends Controller
                 ->get()
                 ->map(function ($service) {
                     $project = $service->project;
-                    // log::info($project->customer);
+                    //log::info($project->customer);
                     $phoneNumbers = $project->customer->customerPhoneNo->pluck('phone_no')->toArray() ?? [];
-                    // log::info($project);            
-                    // log::info($phoneNumbers);    // $project_no = null;
+                    //log::info($project);            
+                    //log::info($phoneNumbers);    // $project_no = null;
                     if ($project->type == 'ongrid') {
                         $project_no = $project->onGrid->on_grid_project_id;
-                        // log::info($project_no);
+                        //log::info($project_no);
                     } else if ($project->type == 'offgrid') {
                         $project_no = $project->offGridHybrid->off_grid_hybrid_project_id;
-                        // log::info($project_no);
+                        //log::info($project_no);
                     }
                     return [
                         'service_id' => $service->id,
@@ -234,7 +235,7 @@ class ServiceController extends Controller
                         // 'location'=>$project->location??null,
                     ];
                 });
-            // log::info($services);
+            //log::info($services);
             return $this->success(['Services' => $services]);
         } catch (ValidationException $e) {
             return $this->error('', 'Unauthorized access', 401);
@@ -256,7 +257,7 @@ class ServiceController extends Controller
             ]);
 
             $service = Service::where('id', $request->service_id)->where('supervisor_id', $request->user_id)->where('project_id', $request->project_id)->first();
-            log::info($service);
+        log::info($service);
             if ($service) {
                 $result = Service::where('id', $request->service_id)->update(['service_time' => $request->time]);
                 return $this->success([
@@ -280,10 +281,10 @@ class ServiceController extends Controller
                 'user_id' => 'required|exists:supervisors,user_id',
                 'service_id' => 'required|exists:services,id'
             ]);
-            // log::info($request);
+            //log::info($request);
 
             $service = Service::with(["project.onGrid", "project.offGridHybrid"])->findOrFail($request->service_id);
-            // log::info($service);
+            //log::info($service);
             $project = $service->project;
             $project_no = null;
             if ($project->type == "ongrid" && $project->onGrid) {
@@ -652,7 +653,7 @@ public function getTodayServiceSummary(Request $request)
             ->get();
 
         // Debug: Log all service types for inspection
-        \Log::info('Service Types:', $services->pluck('service_type')->toArray());
+        Log::info('Service Types:', $services->pluck('service_type')->toArray());
 
         // Calculate summary values with strict type checking
         $totalServices = $services->count();
@@ -669,7 +670,7 @@ public function getTodayServiceSummary(Request $request)
         
         // Verify counts match expected total
         if (($freeServices + $paidServices) != $totalServices) {
-            \Log::warning('Service type mismatch', [
+            Log::warning('Service type mismatch', [
                 'total' => $totalServices,
                 'free' => $freeServices,
                 'paid' => $paidServices,
@@ -935,7 +936,7 @@ return response()->json([
         
     }catch (\Exception $e) {
         DB::rollBack();
-        \Log::error('Service update error: ' . $e->getMessage(), [
+        Log::error('Service update error: ' . $e->getMessage(), [
             'trace' => $e->getTraceAsString()
         ]);
         return response()->json([
@@ -1183,7 +1184,7 @@ if (!empty($request->mainData['time'])) {
         
     }catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Service update error: ' . $e->getMessage(), [
+            Log::error('Service update error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
             return response()->json([
@@ -1419,6 +1420,84 @@ $notifications[] = [
         'status' => 'success',
         'notifications' => $notifications
     ]);
+}
+
+//get next service date for a project
+public function getProjectDueDate($id)
+{
+    try {
+        // Fetch only the specific project with necessary relations
+        $project = Project::with(['service', 'onGrid', 'offGridHybrid'])
+            ->findOrFail($id);
+
+        // 1. Check if project is on hold
+        if ($project->is_hold == 1) {
+            return response()->json(['status' => 'error', 'message' => 'Project is on hold'], 400);
+        }
+
+        $serviceYears = $project->service_years_in_agreement ?? 0;
+        $serviceRounds = $project->service_rounds_in_agreement ?? 0;
+
+        // 2. Determine interval logic
+        if ($serviceYears > 0 && $serviceRounds > 0) {
+            $totalMonths = $serviceYears * 12;
+            $intervalMonths = intval($totalMonths / $serviceRounds);
+        } else {
+            if ($project->{'External/Internal'} === 'External') {
+                $intervalMonths = 12; 
+            } else {
+                return "No service agreement for internal project";
+            }
+        }
+
+        // 3. Get last service date or installation date
+        $lastService = $project->service()->latest('service_date')->first();
+
+        if ($lastService) {
+            $lastDate = \Carbon\Carbon::parse($lastService->service_date);
+            $nextRound = $lastService->service_round_no + 1;
+        } else {
+            $nextRound = 1;
+            $lastDate = \Carbon\Carbon::parse($project->project_installation_date);
+        }
+
+        // 4. Calculate final Due Date
+        $dueDate = $lastDate->copy()->addMonths($intervalMonths);
+
+        // 5. Determine Round Label (Free vs Paid)
+        if ($nextRound <= $serviceRounds) {
+            if ($nextRound == 1) {
+                $roundLabel = '1st (Free)';
+            } elseif ($nextRound == 2) {
+                $roundLabel = '2nd (Free)';
+            } elseif ($nextRound == 3) {
+                $roundLabel = '3rd (Free)';
+            } else {
+                $roundLabel = $nextRound . 'th (Free)';
+            }
+        } else {
+            $paidRound = $nextRound - $serviceRounds;
+            if($paidRound == 1) {
+                $roundLabel = '1st (Paid)';
+            } elseif ($paidRound == 2) {
+                $roundLabel = '2nd (Paid)';
+            } elseif ($paidRound == 3) {
+                $roundLabel = '3rd (Paid)';
+            } else {
+                $roundLabel = $paidRound . 'th (Paid)';
+            }
+           
+        }
+
+        return [
+                'project_id' => $project->id,
+                'date' => $dueDate->toDateString(),
+                'round_label' => $roundLabel
+        ];
+
+    } catch (ModelNotFoundException $e) {
+        return $e->getMessage();
+    }
 }
 
 }
