@@ -207,8 +207,8 @@ public function forgotPassword(Request $request) {
                                      Mail::to($email)->send(new PasswordResetMail($resetUrl, $this->tokenExpiryMinutes));
                                      } 
                                 catch (\Exception $e) {
-                                     \Log::error('Password reset mail failed: ' . $e->getMessage());
-                                      \Log::error($e->getTraceAsString()); return response()->json([ 'status' => 'error', 'message' => 'Could not send reset email. Check logs for details.' ], 500);
+                                     Log::error('Password reset mail failed: ' . $e->getMessage());
+                                     Log::error($e->getTraceAsString()); return response()->json([ 'status' => 'error', 'message' => 'Could not send reset email. Check logs for details.' ], 500);
                                      } return response()->json([ 'status' => 'success', 'message' => 'If that email exists in our system, a password reset link has been sent.' ]);
                                      }
                                      

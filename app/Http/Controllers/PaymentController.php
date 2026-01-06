@@ -198,8 +198,8 @@ public function store(Request $request, $projectId)
         ]);
 
             Log::channel('payments')->info('Payment created', [
-            // 'user_id'    => auth()->id(),
-            // 'user_name'  => auth()->user()->name ?? 'system',   
+            'user_id'    => $request->user()->id(),
+            'user_name'  => $request->user()->name ?? 'system',   
             'project_id' => $projectId,
             'payment_id' => $payment->id,
             'data'       => $payment->toArray(),
@@ -245,8 +245,8 @@ public function update(Request $request, $id)
         Log::info('Payment updated', [
             'payment_id' => $payment->id,
             'project_id' => $payment->project_id,
-            // 'updated_by' => auth()->user()->id ?? 'system',
-            // 'user_name'  => auth()->user()->name ?? 'system',
+            'updated_by' => $request->user()->id ?? 'system',
+            'user_name'  => $request->user()->name ?? 'system',
             'old_values' => $oldData,
             'new_values' => $payment->toArray(),
         ]);
