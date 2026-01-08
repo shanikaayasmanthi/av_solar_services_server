@@ -266,5 +266,39 @@ public function update(Request $request, $id)
     }
 }
 
+public function updatePaymentTotal($projectId, $newTotal)
+{
+    try {
+        $payment = Payment::where('project_id', $projectId)->firstOrFail();
+
+        $oldTotal = $payment->total_payment;
+
+        $payment->total_payment = $newTotal+$oldTotal;
+        $payment->due_payment = $payment->total_payment - $payment->paid_amount;
+        $payment->save();
+
+        // Log the update
+        Log::info('Payment total updated', [
+            'payment_id' => $payment->id,
+            'project_id' => $projectId,
+            'updated_by' => 'system',
+            'old_total' => $oldTotal,
+            'new_total' => $payment->total_payment,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment total updated successfully',
+            'data' => $payment,
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to update payment total',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
 
 }
