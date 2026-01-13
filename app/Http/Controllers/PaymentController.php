@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Traits\HttpResponses;
 use Illuminate\Http\Request;
 use App\Models\Payment;
 use App\Models\Project;
+use Exception;
 use Illuminate\Support\Facades\Log;
 
 
 class PaymentController extends Controller
 {
+    use HttpResponses;
     /**
      * Get all payments with related project data.
      */
@@ -269,35 +272,37 @@ public function update(Request $request, $id)
 public function updatePaymentTotal($projectId, $newTotal)
 {
     try {
-        $payment = Payment::where('project_id', $projectId)->firstOrFail();
+        // Find the record by project_id, or instantiate a new model if it doesn't exist
+        $payment = Payment::firstOrNew(['project_id' => $projectId]);
 
-        $oldTotal = $payment->total_payment;
+        // Keep track of old total for logging
+        $oldTotal = $payment->exists ? $payment->total_payment : 0;
 
-        $payment->total_payment = $newTotal+$oldTotal;
+        if ($payment->exists) {
+            // Update existing record: Add to current total
+            $payment->total_payment += $newTotal;
+        } else {
+            // Setup new record defaults
+            $payment->total_payment = $newTotal;
+            $payment->paid_amount = 0;
+            $payment->payment_notes = 'Initial payment record created';
+        }
+
+        // Common logic for both new and existing records
         $payment->due_payment = $payment->total_payment - $payment->paid_amount;
         $payment->save();
 
-        // Log the update
-        Log::info('Payment total updated', [
+        Log::info('Payment record processed', [
             'payment_id' => $payment->id,
             'project_id' => $projectId,
-            'updated_by' => 'system',
-            'old_total' => $oldTotal,
-            'new_total' => $payment->total_payment,
+            'old_total'  => $oldTotal,
+            'new_total'  => $payment->total_payment,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Payment total updated successfully',
-            'data' => $payment,
-        ], 200);
+        return $this->success($payment, 'Payment updated successfully.');
 
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to update payment total',
-            'error' => $e->getMessage(),
-        ], 500);
+    } catch (Exception $e) {
+        return $this->error('Server Error', $e->getMessage(), 500);
     }
 }
 

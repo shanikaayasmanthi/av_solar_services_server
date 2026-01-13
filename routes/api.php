@@ -141,6 +141,7 @@ Route::put('/profile/{userId}', [UserController::class, 'updateProfile'])->middl
 Route::post('/change-password', [UserController::class, 'changePassword'])->middleware('auth:sanctum');
 Route::get('/projects/search', [ProjectController::class, 'searchProject'])->middleware('auth:sanctum');    
 Route::post('/invoices/create', [InvoiceController::class, 'create'])->middleware('auth:sanctum');
+Route::get("/invoices",[InvoiceController::class,'getAllInvoices'])->middleware('auth:sanctum');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 

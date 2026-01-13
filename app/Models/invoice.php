@@ -27,4 +27,29 @@ class invoice extends Model
         'total',
         'notes'
     ];
+
+    public function expenses()
+    {
+        return $this->hasMany(expence::class, 'invoice_id');
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(invoice_payment::class, 'invoice_id');
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(User::class, 'customer_id', 'id');
+    }
+
+    public function project()
+    {
+        return $this->belongsTo(Project::class, 'project_id', 'id');
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by', 'id');
+    }
 }

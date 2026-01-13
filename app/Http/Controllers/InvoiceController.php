@@ -75,4 +75,70 @@ class InvoiceController extends Controller
             return $this->error('Server Error', $e->getMessage(), 500);
         }
     }
+
+    public function getAllInvoices(Request $request) {
+    try {
+        $perPage = $request->input('per_page', 10);
+        $searchTerm = $request->input('query'); // This is your search input
+
+        $query = Invoice::with(['project.customer', 'project.onGrid', 'project.offGridHybrid', 'creator'])
+            ->orderBy('created_at', 'desc');
+
+        // Apply Search Filters
+        if ($searchTerm) {
+            $query->where(function ($q) use ($searchTerm) {
+                // 1. Search by Invoice Number
+                $q->where('invoice_number', 'LIKE', "%{$searchTerm}%")
+                
+                // 2. Search by Customer Name (Relation)
+                ->orWhereHas('project.customer', function ($subQ) use ($searchTerm) {
+                    $subQ->where('name', 'LIKE', "%{$searchTerm}%");
+                })
+                
+                // 3. Search by OnGrid Project ID (Relation)
+                ->orWhereHas('project.onGrid', function ($subQ) use ($searchTerm) {
+                    $subQ->where('on_grid_project_id', 'LIKE', "%{$searchTerm}%");
+                })
+                
+                // 4. Search by OffGrid Project ID (Relation)
+                ->orWhereHas('project.offGridHybrid', function ($subQ) use ($searchTerm) {
+                    $subQ->where('off_grid_hybrid_project_id', 'LIKE', "%{$searchTerm}%");
+                });
+            });
+        }
+
+        $paginator = $query->paginate($perPage);
+
+        // Transform the data
+        $paginator->getCollection()->transform(function ($invoice) {
+            $project = $invoice->project;
+            $project_no = 'N/A';
+
+            if ($project) {
+                if ($project->type === 'ongrid' && $project->onGrid) {
+                    $project_no = $project->onGrid->on_grid_project_id;
+                } elseif ($project->type === 'offgrid' && $project->offGridHybrid) {
+                    $project_no = $project->offGridHybrid->off_grid_hybrid_project_id;
+                }
+            }
+
+            return [
+                'id' => $invoice->id,
+                'project_id' => $invoice->project_id,
+                'invoice_no' => $invoice->invoice_number,
+                'customer' => $project->customer->name ?? 'N/A',
+                'discount' => $invoice->discount,
+                'amount' => $invoice->amount,
+                'total' => $invoice->total,
+                'project_no' => $project_no,
+                'date' => $invoice->created_at->format('Y-m-d'),
+                'issued_by' => $invoice->creator->name ?? 'Admin',
+            ];
+        });
+
+        return $this->success($paginator);
+    } catch (Exception $e) {
+        return $this->error('Server Error', $e->getMessage(), 500);
+    }
+}
 }

@@ -18,6 +18,11 @@ class invoice_payment extends Model
         'payment_date',
         'amount'
     ];
+
+    public function invoice()
+    {
+        return $this->belongsTo(invoice::class, 'invoice_id');
+    }
     
 }
 

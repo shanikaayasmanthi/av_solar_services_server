@@ -19,4 +19,9 @@ class expence extends Model
         'expense_type',
         'amount'
     ];
+
+    public function invoice()
+    {
+        return $this->belongsTo(invoice::class, 'invoice_id');
+    }
 }
