@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Traits\HttpResponses;
 use Illuminate\Http\Request;
 use App\Models\Payment;
 use App\Models\Project;
+use Exception;
 use Illuminate\Support\Facades\Log;
 
 
 class PaymentController extends Controller
 {
+    use HttpResponses;
     /**
      * Get all payments with related project data.
      */
@@ -60,10 +63,10 @@ class PaymentController extends Controller
 //     }
 
 //     // Payment summary (assuming 1 payment per project, otherwise sum it)
-//     $totalPayment = $project->payments->sum('total_payment');
-//     $paidAmount   = $project->payments->sum('paid_amount');
-//     $duePayment   = $project->payments->sum('due_payment');
-//     $paymentNotes = $project->payments->pluck('payment_notes')->first();
+//     $totalPayment = $project->payment->sum('total_payment');
+//     $paidAmount   = $project->payment->sum('paid_amount');
+//     $duePayment   = $project->payment->sum('due_payment');
+//     $paymentNotes = $project->payment->pluck('payment_notes')->first();
 
 //     return [
 //         'id'            => $project->id,
@@ -71,7 +74,7 @@ class PaymentController extends Controller
 //         'project_name'  => $project->project_name,
 //         'customer_name' => optional($project->customer)->name,
 //         'payment' => [
-//             'id' => $project->payments->pluck('id')->first(),
+//             'id' => $project->payment->pluck('id')->first(),
 //             'total'   => $totalPayment,
 //             'paid'    => $paidAmount,
 //             'due'     => $duePayment,
@@ -107,7 +110,8 @@ public function getPaymentsWithProjects(Request $request)
         $search  = $request->input('search', null);
 
         // Base query with relationships
-        $query = Project::with(['customer', 'payments', 'onGrid', 'offGridHybrid']);
+        $query = Project::with(['customer', 'payment', 'onGrid', 'offGridHybrid'])
+         ->has('payment'); 
 
         // Add search filtering if search term is provided
         if ($search) {
@@ -137,10 +141,10 @@ public function getPaymentsWithProjects(Request $request)
                 $projectNo = $project->offGridHybrid->off_grid_hybrid_project_id;
             }
 
-            $totalPayment = $project->payments->sum('total_payment');
-            $paidAmount   = $project->payments->sum('paid_amount');
-            $duePayment   = $project->payments->sum('due_payment');
-            $paymentNotes = $project->payments->pluck('payment_notes')->first();
+            // $totalPayment = $project->payment->total_payment??0;
+            // $paidAmount   = $project->payment->paid_amount??0;
+            // $duePayment   = $project->payment->due_payment??0;
+            // $paymentNotes = $project->payment->payment_notes??'';
 
             return [
                 'id'            => $project->id,
@@ -148,12 +152,12 @@ public function getPaymentsWithProjects(Request $request)
                 'project_name'  => $project->project_name,
                 'customer_name' => optional($project->customer)->name,
                 'payment' => [
-                    'id'    => $project->payments->pluck('id')->first(),
-                    'total' => $totalPayment,
-                    'paid'  => $paidAmount,
-                    'due'   => $duePayment,
-                    'notes' => $paymentNotes,
-                ],
+                                'id'    => optional($project->payment)->id, // Simply access ID safely
+                                'total' => $project->payment->total_payment ?? 0,
+                                'paid'  => $project->payment->paid_amount ?? 0,
+                                'due'   => $project->payment->due_payment ?? 0,
+                                'notes' => $project->payment->payment_notes ?? '',
+                             ],
             ];
         });
 
@@ -197,8 +201,8 @@ public function store(Request $request, $projectId)
         ]);
 
             Log::channel('payments')->info('Payment created', [
-            'user_id'    => auth()->id(),
-            'user_name'  => auth()->user()->name ?? 'system',   
+            'user_id'    => $request->user()->id(),
+            'user_name'  => $request->user()->name ?? 'system',   
             'project_id' => $projectId,
             'payment_id' => $payment->id,
             'data'       => $payment->toArray(),
@@ -244,8 +248,8 @@ public function update(Request $request, $id)
         Log::info('Payment updated', [
             'payment_id' => $payment->id,
             'project_id' => $payment->project_id,
-            'updated_by' => auth()->user()->id ?? 'system',
-            'user_name'  => auth()->user()->name ?? 'system',
+            'updated_by' => $request->user()->id ?? 'system',
+            'user_name'  => $request->user()->name ?? 'system',
             'old_values' => $oldData,
             'new_values' => $payment->toArray(),
         ]);
@@ -265,5 +269,41 @@ public function update(Request $request, $id)
     }
 }
 
+public function updatePaymentTotal($projectId, $newTotal)
+{
+    try {
+        // Find the record by project_id, or instantiate a new model if it doesn't exist
+        $payment = Payment::firstOrNew(['project_id' => $projectId]);
+
+        // Keep track of old total for logging
+        $oldTotal = $payment->exists ? $payment->total_payment : 0;
+
+        if ($payment->exists) {
+            // Update existing record: Add to current total
+            $payment->total_payment += $newTotal;
+        } else {
+            // Setup new record defaults
+            $payment->total_payment = $newTotal;
+            $payment->paid_amount = 0;
+            $payment->payment_notes = 'Initial payment record created';
+        }
+
+        // Common logic for both new and existing records
+        $payment->due_payment = $payment->total_payment - $payment->paid_amount;
+        $payment->save();
+
+        Log::info('Payment record processed', [
+            'payment_id' => $payment->id,
+            'project_id' => $projectId,
+            'old_total'  => $oldTotal,
+            'new_total'  => $payment->total_payment,
+        ]);
+
+        return $this->success($payment, 'Payment updated successfully.');
+
+    } catch (Exception $e) {
+        return $this->error('Server Error', $e->getMessage(), 500);
+    }
+}
 
 }

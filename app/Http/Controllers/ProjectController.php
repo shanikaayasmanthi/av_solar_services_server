@@ -543,7 +543,7 @@ public function getNonInstalledProjects(Request $request)
                     'capacity' => $project->panel_capacity,
                     'total_panels' => $project->no_of_panels
                 ];
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 // Log::error("Error processing project {$project->id}: " . $e->getMessage());
                 return null;
             }
@@ -638,7 +638,7 @@ public function getPendingInstallationDetails($project_id)
             'status' => 'error',
             'message' => 'Project not found or already installed'
         ], 404);
-    } catch (\Exception $e) {
+    } catch (Exception $e) {
         // Log::error("Failed to fetch installation details: " . $e->getMessage());
         return response()->json([
             'status' => 'error',
@@ -1082,6 +1082,56 @@ public function getHoldExternalProjects(Request $request)
         ]);
     } catch (Exception $e) {
         return $this->error('', 'Error occurred: ' . $e->getMessage(), 500);
+    }
+}
+
+public function searchProject(Request $request) {
+    try {
+        $request->validate([
+            'query' => 'required|string'
+        ]);
+
+        $searchTerm = $request->input('query');
+
+        $projects = Project::with(['onGrid', 'offGridHybrid', 'customer'])
+            ->where(function ($q) use ($searchTerm) {
+                $q->where('project_name', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('project_address', 'like', '%' . $searchTerm . '%')
+                  ->orWhereHas('customer', fn($customer) => 
+                      $customer->where('name', 'like', '%' . $searchTerm . '%'))
+                  ->orWhereHas('onGrid', fn($onGrid) => 
+                      $onGrid->where('on_grid_project_id', 'like', '%' . $searchTerm . '%'))
+                  ->orWhereHas('offGridHybrid', fn($offGrid) => 
+                      $offGrid->where('off_grid_hybrid_project_id', 'like', '%' . $searchTerm . '%'));
+            })
+            ->get()
+            ->map(function ($p) {
+                // 1. Determine the project number
+                $project_no = 'N/A';
+                if ($p->type === 'ongrid' && $p->onGrid) {
+                    $project_no = $p->onGrid->on_grid_project_id;
+                } elseif ($p->type === 'offgrid' && $p->offGridHybrid) {
+                    $project_no = $p->offGridHybrid->off_grid_hybrid_project_id;
+                }
+
+                // 2. Return ONLY the requested fields
+                return [
+                    'id'                => $p->id,
+                    'project_name'      => $p->project_name,
+                    'project_address'   => $p->project_address,
+                    'project_no'        => $project_no,
+                    'customer_name'     => $p->customer->name ?? 'Unknown',
+                    'customer_id'       => $p->customer_id,
+                    'type'              => $p->type,
+                    'external_internal' => $p->getAttribute('External/Internal'), // Accessing field with special characters
+                ];
+            });
+
+        return $this->success([
+            'projects' => $projects
+        ]);
+    } catch (Exception $e) {
+        return $this->error('Search failed', $e->getMessage(), 500);
     }
 }
 
